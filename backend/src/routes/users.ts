@@ -7,6 +7,7 @@ import { currentUser, requirePermission } from '../middleware/auth';
 import { roleExists } from '../lib/roles';
 import { assertObjectId, badRequest, escapeRegex, notFound, pagination, parse } from '../lib/http';
 import { audit } from '../lib/audit';
+import { sendUserWelcomeEmail } from '../lib/mail';
 
 const router = Router();
 router.use(requirePermission('users.manage'));
@@ -73,7 +74,21 @@ router.post('/', async (req, res) => {
   });
   await audit(me, 'user.created', 'User', String(user._id), `Created ${body.role} account for ${body.name}`);
   const saved = await User.findById(user._id).populate('customer', 'name').lean();
-  res.status(201).json({ user: toDto(saved!) });
+  let emailSent = false;
+  try {
+    await sendUserWelcomeEmail({
+      name: body.name,
+      email: body.email,
+      phone: body.phone,
+      role: body.role,
+      customer: saved?.customer && typeof saved.customer === 'object' && 'name' in saved.customer ? String(saved.customer.name) : '',
+      password: body.password,
+    });
+    emailSent = true;
+  } catch (error) {
+    console.error(`Welcome email failed for ${body.email}`, error);
+  }
+  res.status(201).json({ user: toDto(saved!), emailSent });
 });
 
 const updateSchema = z.object({

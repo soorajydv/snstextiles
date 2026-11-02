@@ -149,9 +149,12 @@ function UserModal({ user, onClose, onSaved }: { user: UserRow | null; onClose: 
       if (user) {
         await api(`/users/${user.id}`, { method: 'PATCH', body: { name: form.name, phone: form.phone, role: form.role, customer, active: form.active } });
       } else {
-        await api('/users', { method: 'POST', body: { name: form.name, email: form.email, phone: form.phone, role: form.role, customer, password: form.password } });
+        const result = await api<{ emailSent: boolean }>('/users', { method: 'POST', body: { name: form.name, email: form.email, phone: form.phone, role: form.role, customer, password: form.password } });
+        toast(result.emailSent ? `Account created and login details emailed to ${form.email}` : 'Account created, but the welcome email could not be sent', result.emailSent ? 'ok' : 'error');
+        onSaved();
+        return;
       }
-      toast(user ? 'User updated' : `Account created for ${form.name}`);
+      toast('User updated');
       onSaved();
     } catch (err) {
       setError(errorMessage(err));
