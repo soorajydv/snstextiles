@@ -140,6 +140,7 @@ export interface Payment {
   order: { id: string; orderNo: string };
   customer: { id: string; name: string };
   recordedBy: string;
+  proof: { originalName: string; size: number; url: string } | null;
 }
 
 export interface InventoryItem {

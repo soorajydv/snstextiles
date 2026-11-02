@@ -10,6 +10,7 @@ import { api } from '@/lib/api';
 import { useTheme } from './ThemeProvider';
 import { Icon, type IconName } from './Icon';
 import { PwaInstallButton } from './PwaInstallButton';
+import { ConfirmModal } from './ui';
 
 type NavItem = { href: string; label: string; icon: IconName; permission?: Permission };
 type NotificationItem = { id: string; type?: string; title: string; body: string; href: string; read: boolean };
@@ -71,6 +72,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [notificationsBusy, setNotificationsBusy] = useState(false);
   const notificationRef = useRef<HTMLDivElement>(null);
@@ -152,6 +154,12 @@ export function AppShell({ children }: { children: ReactNode }) {
     }
   }
 
+  async function performLogout() {
+    setUserMenuOpen(false);
+    setLogoutConfirmOpen(false);
+    await logout();
+  }
+
   return (
     <div className={`layout ${collapsed ? 'sidebar-collapsed' : ''}`}>
       <aside className={`sidebar ${open ? 'open' : ''}`}>
@@ -178,7 +186,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="side-bottom">
           <div className="side-user-copy"><strong>{user.customer?.name ?? roleLabel(user.role, meta.roles)}</strong>
           Signed in as {user.email}</div>
-          <button className="btn small block side-signout" onClick={logout} title="Sign out">
+          <button className="btn small block side-signout" onClick={() => setLogoutConfirmOpen(true)} title="Sign out">
             <Icon name="logout" size={14} /><span className="side-signout-label">Sign out</span>
           </button>
         </div>
@@ -215,7 +223,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   <Link className="user-menu-link" href="/profile" role="menuitem" onClick={() => setUserMenuOpen(false)}>
                     <Icon name="profile" size={15} /> My profile
                   </Link>
-                  <button className="user-menu-logout" type="button" role="menuitem" onClick={async () => { setUserMenuOpen(false); await logout(); }}>
+                  <button className="user-menu-logout" type="button" role="menuitem" onClick={() => setLogoutConfirmOpen(true)}>
                     <Icon name="logout" size={15} /> Log out
                   </button>
                 </div>
@@ -224,6 +232,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </header>
         <div className="content">{children}</div>
+        {logoutConfirmOpen && <ConfirmModal title="Sign out" message="Are you sure you want to sign out?" confirmLabel="Sign out" onClose={() => setLogoutConfirmOpen(false)} onConfirm={performLogout} />}
       </main>
     </div>
   );

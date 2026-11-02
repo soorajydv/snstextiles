@@ -8,6 +8,7 @@ import { PAYMENT_METHODS } from '../lib/constants';
 import { assertObjectId, badRequest, conflict, notFound, pagination, parse } from '../lib/http';
 import { loadOrderForUser } from '../lib/workflow';
 import { audit } from '../lib/audit';
+import { removeStoredFile, removeUploadedFiles, storedFilePath, upload } from '../lib/uploads';
 
 const router = Router();
 
@@ -26,6 +27,7 @@ const toDto = (p: Record<string, any>) => ({
   method: p.method,
   reference: p.reference,
   note: p.note,
+  proof: p.proof?.storedName ? { originalName: p.proof.originalName, size: p.proof.size, url: `/api/payments/${String(p._id)}/proof` } : null,
   receivedAt: p.receivedAt,
   order: p.order && typeof p.order === 'object' && 'orderNo' in p.order ? { id: String(p.order._id), orderNo: p.order.orderNo } : { id: String(p.order), orderNo: '' },
   customer: p.customer && typeof p.customer === 'object' && 'name' in p.customer ? { id: String(p.customer._id), name: p.customer.name } : { id: String(p.customer), name: '' },
@@ -67,28 +69,49 @@ const createSchema = z.object({
   receivedAt: z.coerce.date().optional(),
 });
 
-router.post('/', requirePermission('payments.record'), async (req, res) => {
+function proofEntry(file: Express.Multer.File, user: ReturnType<typeof currentUser>) {
+  return { storedName: file.filename, originalName: file.originalname, mimeType: file.mimetype, size: file.size, uploadedBy: user.id };
+}
+
+router.post('/', requirePermission('payments.record'), upload.single('proof'), async (req, res) => {
   const user = currentUser(req);
-  const body = parse(createSchema, req.body);
-  const order = await loadOrderForUser(assertObjectId(body.orderId, 'Order'), user);
-  if (!order.totalAmount) throw conflict('Set the order price before recording payments');
-  const balance = order.totalAmount - order.amountPaid;
-  if (body.amount > balance + 0.001) throw badRequest(`amount: Payment exceeds the outstanding balance of ${balance}`);
-  if (body.receivedAt && body.receivedAt > new Date()) throw badRequest('receivedAt: Payment date cannot be in the future');
-  const payment = await Payment.create({
-    order: order._id,
-    customer: order.customer,
-    amount: body.amount,
-    method: body.method,
-    reference: body.reference,
-    note: body.note,
-    receivedAt: body.receivedAt ?? new Date(),
-    recordedBy: user.id,
+  const uploaded = req.file;
+  try {
+    const body = parse(createSchema, req.body);
+    const order = await loadOrderForUser(assertObjectId(body.orderId, 'Order'), user);
+    if (!order.totalAmount) throw conflict('Set the order price before recording payments');
+    const balance = order.totalAmount - order.amountPaid;
+    if (body.amount > balance + 0.001) throw badRequest(`amount: Payment exceeds the outstanding balance of ${balance}`);
+    if (body.receivedAt && body.receivedAt > new Date()) throw badRequest('receivedAt: Payment date cannot be in the future');
+    const payment = await Payment.create({
+      order: order._id,
+      customer: order.customer,
+      amount: body.amount,
+      method: body.method,
+      reference: body.reference,
+      note: body.note,
+      proof: uploaded ? proofEntry(uploaded, user) : undefined,
+      receivedAt: body.receivedAt ?? new Date(),
+      recordedBy: user.id,
+    });
+    await recomputePaid(order._id);
+    await audit(user, 'payment.recorded', 'Payment', String(payment._id), `Recorded ${body.method} payment of ${body.amount} for ${order.orderNo}`);
+    const saved = await Payment.findById(payment._id).populate('order', 'orderNo').populate('customer', 'name').populate('recordedBy', 'name').lean();
+    res.status(201).json({ payment: toDto(saved!) });
+  } catch (error) {
+    removeUploadedFiles(uploaded ? [uploaded] : undefined);
+    throw error;
+  }
+});
+
+router.get('/:id/proof', requirePermission('payments.view'), async (req, res) => {
+  const user = currentUser(req);
+  const payment = await Payment.findById(assertObjectId(req.params.id, 'Payment')).lean();
+  if (!payment?.proof?.storedName) throw notFound('Payment proof not found');
+  await loadOrderForUser(assertObjectId(String(payment.order), 'Order'), user);
+  res.type(payment.proof.mimeType || 'application/octet-stream').sendFile(storedFilePath(payment.proof.storedName), (err) => {
+    if (err && !res.headersSent) res.status(404).end();
   });
-  await recomputePaid(order._id);
-  await audit(user, 'payment.recorded', 'Payment', String(payment._id), `Recorded ${body.method} payment of ${body.amount} for ${order.orderNo}`);
-  const saved = await Payment.findById(payment._id).populate('order', 'orderNo').populate('customer', 'name').populate('recordedBy', 'name').lean();
-  res.status(201).json({ payment: toDto(saved!) });
 });
 
 router.delete('/:id', requirePermission('payments.delete'), async (req, res) => {
@@ -96,6 +119,7 @@ router.delete('/:id', requirePermission('payments.delete'), async (req, res) => 
   const id = assertObjectId(req.params.id, 'Payment');
   const payment = await Payment.findById(id).populate('order', 'orderNo');
   if (!payment) throw notFound('Payment not found');
+  removeStoredFile(payment.proof?.storedName);
   await payment.deleteOne();
   const orderRef = payment.order as unknown as { _id: Types.ObjectId; orderNo: string };
   await recomputePaid(orderRef._id);

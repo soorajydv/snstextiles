@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { api, useApi } from '@/lib/api';
 import { useAuth } from '@/components/AuthProvider';
 import { useToast } from '@/components/Toast';
-import { Badge, DueDate, Empty, Notice, PageHeader, Spinner, errorMessage } from '@/components/ui';
+import { Badge, ConfirmModal, DueDate, Empty, Notice, PageHeader, Spinner, errorMessage } from '@/components/ui';
 import { STAGE_ORDER, STAGE_SHORT, canCompleteStage, initials } from '@/lib/format';
 import type { Order, Role, Stage } from '@/lib/types';
 
@@ -22,12 +22,12 @@ export default function ProductionPage() {
   const toast = useToast();
   const { data, error, reload, setData } = useApi<{ orders: Order[] }>('/orders?limit=200');
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [orderToAdvance, setOrderToAdvance] = useState<Order | null>(null);
   const columns = COLUMNS[user.role as Role] ?? ALL;
   const label = (s: Stage) => meta.stages.find((x) => x.key === s)?.label ?? s;
 
   async function advance(o: Order) {
     const next = STAGE_ORDER[STAGE_ORDER.indexOf(o.stage) + 1];
-    if (!confirm(`Mark ${STAGE_SHORT[o.stage]} complete for ${o.orderNo} and move it to ${STAGE_SHORT[next]}?`)) return;
     setBusyId(o.id);
     try {
       const res = await api<{ order: Order }>(`/orders/${o.id}/advance`, { method: 'POST', body: {} });
@@ -37,12 +37,14 @@ export default function ProductionPage() {
       toast(errorMessage(err), 'error');
       reload();
     } finally {
+      setOrderToAdvance(null);
       setBusyId(null);
     }
   }
 
   return (
     <>
+      {orderToAdvance && <ConfirmModal title="Advance order" message={`Mark ${STAGE_SHORT[orderToAdvance.stage]} complete for ${orderToAdvance.orderNo} and move it to ${STAGE_SHORT[STAGE_ORDER[STAGE_ORDER.indexOf(orderToAdvance.stage) + 1]]}?`} confirmLabel="Advance order" danger={false} onClose={() => setOrderToAdvance(null)} onConfirm={() => advance(orderToAdvance)} />}
       <PageHeader
         eyebrow="SHOP FLOOR"
         title="Production board"
@@ -90,7 +92,7 @@ export default function ProductionPage() {
                         <Link className="btn small" href={`/orders/${o.id}`}>Open job →</Link>
                       </div>
                       {canMove && !gated && (
-                        <button className="btn small primary block" style={{ marginTop: 10 }} disabled={busyId === o.id} onClick={() => advance(o)}>
+                        <button className="btn small primary block" style={{ marginTop: 10 }} disabled={busyId === o.id} onClick={() => setOrderToAdvance(o)}>
                           {busyId === o.id ? 'Moving…' : 'Mark stage complete →'}
                         </button>
                       )}

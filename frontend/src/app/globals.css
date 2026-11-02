@@ -194,12 +194,20 @@ tbody tr.clickable:hover td { background: light-dark(#f7f9f6, #1c2a22); }
   background: light-dark(#fff, #121b16); color: inherit; font-size: 12px; outline: none;
 }
 .toolbar select { width: auto; }
+.customer-picker { position: relative; min-width: 220px; }
+.customer-picker input { width: 100%; border: 1px solid light-dark(#dce3da, #3a493f); border-radius: 9px; padding: 10px 12px; background: light-dark(#fff, #121b16); color: inherit; font-size: 12px; outline: none; }
+.customer-picker input:focus { border-color: #6d9a7b; box-shadow: 0 0 0 3px #6d9a7b20; }
+.customer-picker-menu { position: absolute; z-index: 25; top: calc(100% + 5px); left: 0; right: 0; max-height: 280px; overflow-y: auto; padding: 5px; border: 1px solid light-dark(#dfe6df, #334238); border-radius: 10px; background: light-dark(#fff, #18221c); box-shadow: 0 14px 35px #0003; }
+.customer-picker-option { display: block; width: 100%; border: 0; border-radius: 7px; padding: 9px 10px; background: transparent; color: inherit; font-size: 11px; text-align: left; cursor: pointer; }
+.customer-picker-option:hover, .customer-picker-option.selected { background: light-dark(#f1f7f0, #213026); }
+.customer-picker-empty { display: block; padding: 9px 10px; color: light-dark(#87938a, #9aaba0); font-size: 11px; }
 .search input:focus, .field input:focus, .field select:focus, .field textarea:focus { border-color: #6d9a7b; box-shadow: 0 0 0 3px #6d9a7b20; }
 .field input:disabled, .field select:disabled { opacity: .6; }
 .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .form-grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .field { display: grid; gap: 6px; min-width: 0; align-content: start; }
 .field label { font-size: 11px; font-weight: 750; color: light-dark(#59685e, #bfcbc1); }
+.required-mark { color: #b42318; }
 .field small { font-size: 10px; color: light-dark(#87938a, #9aaba0); }
 .field .error-text { color: light-dark(#b34d44, #ff9b8e); font-size: 10px; }
 .field.full { grid-column: 1 / -1; }
@@ -495,6 +503,7 @@ html[data-theme="dark"] .permission-group, html[data-theme="dark"] .chart-summar
 html[data-theme="dark"] .chart-summary > div { background: #12243a; }
 html[data-theme="dark"] .notice { background: #142d47; border-color: #315d87; color: #d7e6f4; }
 html[data-theme="dark"] .modal { background: #101d2f; border-color: #294967; }
+html[data-theme="dark"] .required-mark { color: #ff7b86; }
 .notification-menu { background: light-dark(#fff, #163653); border-color: light-dark(#dbe2ef, #315476); }
 .notification-item:hover { background: light-dark(var(--palette-soft), #1d4569); border-color: light-dark(#c3d0e1, #3f72af); }
 .notification-item span, .user-chip .who small { color: light-dark(#647994, #b0c2d5); }
@@ -543,6 +552,9 @@ tbody tr.clickable:hover td { background: light-dark(#f2f5f9, #1a4062); }
 .toast.error { background: light-dark(#a43f50, #e9a7b4); color: #fff; }
 html[data-theme="dark"] .toast.error { background: #8f1d2c; border: 1px solid #ef6678; color: #fff; }
 html[data-theme="dark"] .notice.error { background: #4a1720; border-color: #a83a4c; color: #ffb8c1; }
+/* Keep the destructive sidebar action red in both themes. */
+.sidebar .side-signout { color: #ff9b9b; border-color: #ff9b9b66; background: transparent; }
+.sidebar .side-signout:hover:not(:disabled) { color: #ffd0d0; border-color: #ff9b9b; background: #a8323240; }
 .login-art { background: var(--palette-navy); }
 .login-art p { color: #c1d0df; }
 .spinner { border-color: light-dark(#dbe2ef, #2b4b6b); border-top-color: var(--palette-blue); }

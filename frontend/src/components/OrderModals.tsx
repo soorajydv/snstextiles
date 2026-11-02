@@ -5,7 +5,9 @@ import { api } from '@/lib/api';
 import { useAuth } from './AuthProvider';
 import { useToast } from './Toast';
 import { Field, Modal, Notice, errorMessage } from './ui';
+import { LocalFilePreview } from './LocalFilePreview';
 import { fmtMoney, toInputDate } from '@/lib/format';
+import { AVATAR_EXTENSIONS, MAX_UPLOAD_BYTES, validateUploadFile } from '@/lib/uploads';
 import type { Order, Payment } from '@/lib/types';
 
 type Done<T> = (result: T) => void;
@@ -21,17 +23,28 @@ export function RecordPaymentModal({ orders, initialOrderId, onClose, onSaved }:
   const [reference, setReference] = useState('');
   const [receivedAt, setReceivedAt] = useState(toInputDate(new Date()));
   const [note, setNote] = useState('');
+  const [proof, setProof] = useState<File | null>(null);
+  const [proofError, setProofError] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (proofError) return;
     setBusy(true);
     setError('');
     try {
+      const form = new FormData();
+      form.append('orderId', orderId);
+      form.append('amount', amount);
+      form.append('method', method);
+      form.append('reference', reference);
+      form.append('note', note);
+      form.append('receivedAt', receivedAt);
+      if (proof) form.append('proof', proof);
       const { payment } = await api<{ payment: Payment }>('/payments', {
         method: 'POST',
-        body: { orderId, amount: Number(amount), method, reference, note, receivedAt },
+        form,
       });
       toast(`Payment of ${fmtMoney(payment.amount)} recorded for ${payment.order.orderNo}`);
       onSaved(payment);
@@ -81,6 +94,18 @@ export function RecordPaymentModal({ orders, initialOrderId, onClose, onSaved }:
             </Field>
             <Field label="Note" full>
               <input value={note} onChange={(e) => setNote(e.target.value)} />
+            </Field>
+            <Field label="Proof image" hint={`Optional · PNG, JPG, WEBP or GIF · up to ${MAX_UPLOAD_BYTES / (1024 * 1024)} MB`} error={proofError} full>
+              <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.currentTarget.value = '';
+                if (!file) { setProof(null); setProofError(''); return; }
+                const message = validateUploadFile(file, { maxBytes: MAX_UPLOAD_BYTES, extensions: AVATAR_EXTENSIONS, label: 'Proof image' });
+                setProofError(message);
+                setProof(message ? null : file);
+                if (message) toast(message, 'error');
+              }} />
+              {proof && <LocalFilePreview file={proof} />}
             </Field>
           </div>
         )}

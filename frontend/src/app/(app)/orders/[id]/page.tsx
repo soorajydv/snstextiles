@@ -7,7 +7,7 @@ import { api, useApi } from '@/lib/api';
 import { useAuth } from '@/components/AuthProvider';
 import { useToast } from '@/components/Toast';
 import { LocalFilePreview } from '@/components/LocalFilePreview';
-import { Badge, DueDate, Empty, Field, Modal, Notice, PageHeader, Spinner, errorMessage } from '@/components/ui';
+import { Badge, ConfirmModal, DueDate, Empty, Field, Modal, Notice, PageHeader, Spinner, errorMessage } from '@/components/ui';
 import { DeliverModal, EditOrderModal, RecordPaymentModal, TextPromptModal } from '@/components/OrderModals';
 import { STAGE_ORDER, STAGE_SHORT, canCompleteStage, canSeeMoney, fileSize, fmtDate, fmtDateTime, fmtMoney } from '@/lib/format';
 import type { Order, Payment, StoredFile } from '@/lib/types';
@@ -25,6 +25,7 @@ export default function OrderDetailPage() {
   const payments = useApi<{ payments: Payment[] }>(money ? `/payments?order=${id}` : null);
   const [modal, setModal] = useState<ModalKind>(null);
   const [busy, setBusy] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
   if (error) {
     return (
@@ -68,9 +69,9 @@ export default function OrderDetailPage() {
   }
 
   async function deleteOrder() {
-    if (!confirm(`Delete ${order.orderNo}? This cannot be undone.`)) return;
     try {
       await api(`/orders/${order.id}`, { method: 'DELETE' });
+      setDeleteConfirmOpen(false);
       toast(`${order.orderNo} deleted`);
       router.replace('/orders');
     } catch (err) {
@@ -89,7 +90,7 @@ export default function OrderDetailPage() {
           <>
             {meta.permissions.includes('orders.update') && order.stage !== 'delivered' && <button className="btn" onClick={() => setModal('edit')}>Edit</button>}
             {meta.permissions.includes('orders.send_back') && !['design', 'delivered'].includes(order.stage) && <button className="btn" onClick={() => setModal('sendBack')}>↩ Send back</button>}
-            {meta.permissions.includes('orders.delete') && isDesign && <button className="btn danger" onClick={deleteOrder}>Delete</button>}
+            {meta.permissions.includes('orders.delete') && isDesign && <button className="btn danger" onClick={() => setDeleteConfirmOpen(true)}>Delete</button>}
             {canAdvance && (
               <button className="btn primary" disabled={advanceBlocked} title={advanceBlocked ? 'Waiting for customer artwork approval' : undefined} onClick={() => setModal('advance')}>
                 Complete {STAGE_SHORT[order.stage]} → {nextStage && STAGE_SHORT[nextStage]}
@@ -273,7 +274,7 @@ export default function OrderDetailPage() {
                   <h3 style={{ marginTop: 18 }}>Payments</h3>
                   {payments.data.payments.map((p) => (
                     <div className="kv" key={p.id}>
-                      <span>{fmtDate(p.receivedAt)} · {p.method}{p.reference ? ` · ${p.reference}` : ''}</span>
+                      <span>{fmtDate(p.receivedAt)} · {p.method}{p.reference ? ` · ${p.reference}` : ''}{p.proof ? <> · <a className="link-btn" href={p.proof.url} target="_blank" rel="noreferrer">Proof</a></> : ''}</span>
                       <strong>{fmtMoney(p.amount)}</strong>
                     </div>
                   ))}
@@ -376,6 +377,7 @@ export default function OrderDetailPage() {
       )}
       {modal === 'approve' && <ApproveModal order={order} onClose={() => setModal(null)} onSaved={update} />}
       {modal === 'upload' && <UploadArtworkModal order={order} onClose={() => setModal(null)} onSaved={update} />}
+      {deleteConfirmOpen && <ConfirmModal title="Delete order" message={`Delete ${order.orderNo}? This cannot be undone.`} confirmLabel="Delete order" onClose={() => setDeleteConfirmOpen(false)} onConfirm={deleteOrder} />}
     </>
   );
 }

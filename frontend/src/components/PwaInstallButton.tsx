@@ -33,5 +33,5 @@ export function PwaInstallButton() {
   }
 
   if (!prompt && !ios) return null;
-  return <button className="icon-btn pwa-install" onClick={install} aria-label="Install app" title="Install app"><Icon name="download" size={16} /></button>;
+  return <button className="icon-btn pwa-install" onClick={install} aria-label="Install app" title="Install app"><Icon name="install" size={16} /></button>;
 }

@@ -87,6 +87,10 @@ function fileEntry(f: Express.Multer.File, kind: 'jersey' | 'reference' | 'artwo
   return { storedName: f.filename, originalName: f.originalname, mimeType: f.mimetype, size: f.size, kind, uploadedBy: user.id };
 }
 
+function proofEntry(f: Express.Multer.File, user: AuthUser) {
+  return { storedName: f.filename, originalName: f.originalname, mimeType: f.mimetype, size: f.size, uploadedBy: user.id };
+}
+
 async function respond(order: OrderDoc, user: AuthUser) {
   await order.populate('customer', 'name phone');
   return { order: serializeOrder(order, user) };
@@ -149,14 +153,16 @@ router.get('/:id', requirePermission('orders.view'), async (req, res) => {
 router.post(
   '/',
   requirePermission('orders.create'),
-  upload.fields([{ name: 'jerseyImage', maxCount: 1 }, { name: 'files', maxCount: 10 }]),
+  upload.fields([{ name: 'jerseyImage', maxCount: 1 }, { name: 'files', maxCount: 10 }, { name: 'advanceProof', maxCount: 1 }]),
   async (req, res) => {
     const user = currentUser(req);
     const uploaded = req.files as Record<string, Express.Multer.File[]> | undefined;
-    const allUploads = [...(uploaded?.jerseyImage ?? []), ...(uploaded?.files ?? [])];
+    const allUploads = [...(uploaded?.jerseyImage ?? []), ...(uploaded?.files ?? []), ...(uploaded?.advanceProof ?? [])];
     try {
       const body = normaliseSpec(parse(createSchema, parseMultipartData(req)));
       if (startOfDay(body.dueDate) < startOfToday()) throw badRequest('dueDate: Delivery date cannot be in the past');
+      if (body.advance > 0 && body.advanceMethod !== 'Cash' && !uploaded?.advanceProof?.[0]) throw badRequest('advanceProof: Upload proof of payment for non-cash advances');
+      if (body.advance === 0 && uploaded?.advanceProof?.[0]) throw badRequest('advanceProof: Add an advance amount before uploading proof');
 
       // Resolve customer: customers can only order for themselves.
       let customerId: string;
@@ -211,6 +217,7 @@ router.post(
           customer: customerId,
           amount: body.advance,
           method: body.advanceMethod,
+          proof: uploaded?.advanceProof?.[0] ? proofEntry(uploaded.advanceProof[0], user) : undefined,
           note: 'Advance received at order registration',
           recordedBy: user.id,
         });

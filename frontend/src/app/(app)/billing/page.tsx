@@ -1,29 +1,87 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { api, useApi } from '@/lib/api';
 import { useAuth } from '@/components/AuthProvider';
 import { useToast } from '@/components/Toast';
-import { Badge, Empty, Notice, PageHeader, Spinner, StatCard, errorMessage } from '@/components/ui';
+import { Badge, ConfirmModal, Empty, Notice, PageHeader, Spinner, StatCard, errorMessage } from '@/components/ui';
 import { RecordPaymentModal } from '@/components/OrderModals';
 import { fmtDate, fmtMoney } from '@/lib/format';
-import type { Order, Payment } from '@/lib/types';
+import type { Customer, Order, Payment } from '@/lib/types';
+
+function CustomerPicker({ customers, selectedId, onSelect }: { customers: Customer[]; selectedId: string | null; onSelect: (id: string) => void }) {
+  const selected = customers.find((customer) => customer.id === selectedId);
+  const [query, setQuery] = useState(selected?.name ?? '');
+  const [open, setOpen] = useState(false);
+  const pickerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setQuery(selected?.name ?? '');
+  }, [selected?.id, selected?.name]);
+
+  useEffect(() => {
+    function close(event: MouseEvent) {
+      if (!pickerRef.current?.contains(event.target as Node)) setOpen(false);
+    }
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, []);
+
+  const filtered = customers.filter((customer) => customer.name.toLowerCase().includes(query.trim().toLowerCase()));
+  function choose(id: string, name = '') {
+    setQuery(name);
+    setOpen(false);
+    onSelect(id);
+  }
+
+  return (
+    <div className="customer-picker" ref={pickerRef}>
+      <input
+        value={query}
+        placeholder="Search customers…"
+        aria-label="Search customer billing records"
+        aria-expanded={open}
+        onFocus={() => setOpen(true)}
+        onChange={(e) => {
+          setQuery(e.target.value);
+          setOpen(true);
+          if (!e.target.value) onSelect('');
+        }}
+      />
+      {open && (
+        <div className="customer-picker-menu" role="listbox">
+          <button type="button" className={`customer-picker-option ${!selectedId ? 'selected' : ''}`} onClick={() => choose('')}>All customers</button>
+          {filtered.map((customer) => (
+            <button type="button" className={`customer-picker-option ${selectedId === customer.id ? 'selected' : ''}`} key={customer.id} onClick={() => choose(customer.id, customer.name)}>
+              {customer.name}
+            </button>
+          ))}
+          {!filtered.length && <span className="customer-picker-empty">No customers found.</span>}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function Billing() {
   const { user, meta } = useAuth();
   const toast = useToast();
+  const router = useRouter();
   const params = useSearchParams();
   const customerFilter = params.get('customer');
   const isCustomer = user.role === 'customer';
+  const isOwner = user.role === 'owner';
   const canRecord = meta.permissions.includes('payments.record');
+  const customers = useApi<{ customers: Customer[] }>(isOwner ? '/customers?limit=200' : null);
   const orders = useApi<{ orders: Order[] }>(`/orders?limit=200${customerFilter ? `&customer=${customerFilter}` : ''}`);
   const payments = useApi<{ payments: Payment[] }>(`/payments?limit=100${customerFilter ? `&customer=${customerFilter}` : ''}`);
   const [tab, setTab] = useState<'invoices' | 'payments'>('invoices');
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<'' | 'unpaid' | 'part' | 'paid'>('');
   const [recording, setRecording] = useState(false);
+  const [paymentToDelete, setPaymentToDelete] = useState<Payment | null>(null);
 
   const all = orders.data?.orders ?? [];
   const totals = all.reduce((a, o) => ({ value: a.value + (o.totalAmount ?? 0), paid: a.paid + (o.amountPaid ?? 0), due: a.due + (o.balance ?? 0) }), { value: 0, paid: 0, due: 0 });
@@ -38,10 +96,20 @@ function Billing() {
     return true;
   });
 
+  function selectCustomer(id: string) {
+    const next = new URLSearchParams(params.toString());
+    if (id) next.set('customer', id);
+    else next.delete('customer');
+    const query = next.toString();
+    router.replace(query ? `/billing?${query}` : '/billing');
+  }
+
+  const selectedCustomer = customers.data?.customers.find((customer) => customer.id === customerFilter);
+
   async function deletePayment(p: Payment) {
-    if (!confirm(`Delete payment of ${fmtMoney(p.amount)} on ${p.order.orderNo}?`)) return;
     try {
       await api(`/payments/${p.id}`, { method: 'DELETE' });
+      setPaymentToDelete(null);
       toast('Payment deleted');
       payments.reload();
       orders.reload();
@@ -58,9 +126,10 @@ function Billing() {
         subtitle={isCustomer ? 'Your order totals, payments received and balances.' : 'Issue invoices, record full or partial payments and follow up balances.'}
         actions={canRecord && <button className="btn primary" onClick={() => setRecording(true)}>＋ Record payment</button>}
       />
+      {paymentToDelete && <ConfirmModal title="Delete payment" message={`Delete payment of ${fmtMoney(paymentToDelete.amount)} on ${paymentToDelete.order.orderNo}?`} confirmLabel="Delete payment" onClose={() => setPaymentToDelete(null)} onConfirm={() => deletePayment(paymentToDelete)} />}
       {customerFilter && (
         <Notice style={{ marginBottom: 15 }}>
-          Filtered to one customer. <Link className="link-btn" href="/billing">Show all</Link>
+          Showing all billing records for <strong>{selectedCustomer?.name ?? 'the selected customer'}</strong>. <Link className="link-btn" href="/billing">Show all</Link>
         </Notice>
       )}
       <div className="stats">
@@ -70,6 +139,9 @@ function Billing() {
         <StatCard label="Invoices issued" value={all.filter((o) => o.invoice?.number).length} note={`${all.filter((o) => !o.totalAmount).length} orders awaiting a price`} icon="▤" />
       </div>
       <div className="toolbar">
+        {isOwner && (
+          <CustomerPicker customers={customers.data?.customers ?? []} selectedId={customerFilter} onSelect={selectCustomer} />
+        )}
         <button className={`btn ${tab === 'invoices' ? 'primary' : ''}`} onClick={() => setTab('invoices')}>Orders & invoices</button>
         <button className={`btn ${tab === 'payments' ? 'primary' : ''}`} onClick={() => setTab('payments')}>Payment ledger</button>
         {tab === 'invoices' && (
@@ -115,7 +187,7 @@ function Billing() {
           {!payments.data ? <Spinner /> : !payments.data.payments.length ? <Empty>No payments recorded.</Empty> : (
             <div className="table-wrap">
               <table>
-                <thead><tr><th>Date</th><th>Order</th><th>Customer</th><th>Method</th><th>Reference</th><th className="num">Amount</th><th>Recorded by</th>{meta.permissions.includes('payments.delete') && <th />}</tr></thead>
+                <thead><tr><th>Date</th><th>Order</th><th>Customer</th><th>Method</th><th>Reference</th><th>Proof</th><th className="num">Amount</th><th>Recorded by</th>{meta.permissions.includes('payments.delete') && <th />}</tr></thead>
                 <tbody>
                   {payments.data.payments.map((p) => (
                     <tr key={p.id}>
@@ -124,9 +196,10 @@ function Billing() {
                       <td>{p.customer.name}</td>
                       <td>{p.method}</td>
                       <td>{p.reference || '—'}</td>
+                      <td>{p.proof ? <a className="link-btn" href={p.proof.url} target="_blank" rel="noreferrer">View proof</a> : '—'}</td>
                       <td className="num"><strong>{fmtMoney(p.amount)}</strong></td>
                       <td>{p.recordedBy || '—'}</td>
-                      {meta.permissions.includes('payments.delete') && <td><button className="btn small danger" onClick={() => deletePayment(p)}>Delete</button></td>}
+                      {meta.permissions.includes('payments.delete') && <td><button className="btn small danger" onClick={() => setPaymentToDelete(p)}>Delete</button></td>}
                     </tr>
                   ))}
                 </tbody>

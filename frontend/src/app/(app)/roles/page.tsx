@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { api, useApi } from '@/lib/api';
 import { useAuth } from '@/components/AuthProvider';
 import { useToast } from '@/components/Toast';
-import { Field, Modal, Notice, PageHeader, Spinner, errorMessage } from '@/components/ui';
+import { ConfirmModal, Field, Modal, Notice, PageHeader, Spinner, errorMessage } from '@/components/ui';
 import type { Permission, RoleDefinition } from '@/lib/types';
 
 type RoleForm = { key: string; name: string; description: string; permissions: Permission[] };
@@ -63,15 +63,16 @@ export default function RolesPage() {
   const { data, error, reload } = useApi<{ roles: RoleDefinition[]; permissions: Permission[] }>('/roles');
   const [editing, setEditing] = useState<RoleDefinition | 'new' | null>(null);
   const toast = useToast();
+  const [roleToDelete, setRoleToDelete] = useState<RoleDefinition | null>(null);
 
   if (!meta.permissions.includes('roles.manage')) return <Notice tone="error">You do not have permission to manage roles.</Notice>;
   if (error) return <Notice tone="error">{error}</Notice>;
   if (!data) return <Spinner />;
 
   async function remove(role: RoleDefinition) {
-    if (!confirm(`Delete the ${role.name} role?`)) return;
     try {
       await api(`/roles/${role.key}`, { method: 'DELETE' });
+      setRoleToDelete(null);
       toast('Role deleted');
       await reload();
     } catch (err) {
@@ -81,6 +82,7 @@ export default function RolesPage() {
 
   return (
     <>
+      {roleToDelete && <ConfirmModal title="Delete role" message={`Delete the ${roleToDelete.name} role?`} confirmLabel="Delete role" onClose={() => setRoleToDelete(null)} onConfirm={() => remove(roleToDelete)} />}
       <PageHeader eyebrow="ACCESS CONTROL" title="Roles & permissions" subtitle="Create roles that control which pages, UI actions and API operations a user can access." actions={<button className="btn primary" onClick={() => setEditing('new')}>＋ Create role</button>} />
       <section className="card flush">
         <div className="table-wrap">
@@ -92,7 +94,7 @@ export default function RolesPage() {
                 <td className="wrap">{role.description || <span className="muted">—</span>}</td>
                 <td>{role.permissions.length}</td>
                 <td>{role.system ? 'Built-in' : 'Custom'}</td>
-                <td><button className="btn small" onClick={() => setEditing(role)}>Edit</button>{' '}{!role.system && <button className="btn small danger" onClick={() => remove(role)}>Delete</button>}</td>
+                <td><button className="btn small" onClick={() => setEditing(role)}>Edit</button>{' '}{!role.system && <button className="btn small danger" onClick={() => setRoleToDelete(role)}>Delete</button>}</td>
               </tr>
             ))}</tbody>
           </table>

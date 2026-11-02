@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { api, useApi } from '@/lib/api';
 import { useAuth } from '@/components/AuthProvider';
 import { useToast } from '@/components/Toast';
-import { Badge, Field, Modal, Notice, PageHeader, Spinner, errorMessage } from '@/components/ui';
+import { Badge, ConfirmModal, Field, Modal, Notice, PageHeader, Spinner, errorMessage } from '@/components/ui';
 import { roleLabel, fmtDateTime } from '@/lib/format';
 import type { Customer, Role, UserRow } from '@/lib/types';
 
@@ -33,11 +33,12 @@ export default function UsersPage() {
   const { data, error, reload } = useApi<{ users: UserRow[]; total: number; limit: number }>(`/users?${userParams}`);
   const [editing, setEditing] = useState<UserRow | 'new' | null>(null);
   const [resetting, setResetting] = useState<UserRow | null>(null);
+  const [userToDelete, setUserToDelete] = useState<UserRow | null>(null);
 
   async function remove(user: UserRow) {
-    if (!confirm(`Delete ${user.name}'s account? This cannot be undone.`)) return;
     try {
       await api(`/users/${user.id}`, { method: 'DELETE' });
+      setUserToDelete(null);
       toast(`${user.name}'s account deleted`);
       reload();
     } catch (err) {
@@ -49,6 +50,7 @@ export default function UsersPage() {
 
   return (
     <>
+      {userToDelete && <ConfirmModal title="Delete user account" message={`Delete ${userToDelete.name}'s account? This cannot be undone.`} confirmLabel="Delete account" onClose={() => setUserToDelete(null)} onConfirm={() => remove(userToDelete)} />}
       <PageHeader
         eyebrow="ACCESS CONTROL"
         title="Users & permissions"
@@ -79,7 +81,7 @@ export default function UsersPage() {
                     <td>
                       <button className="btn small" onClick={() => setEditing(u)}>Edit</button>{' '}
                       <button className="btn small" onClick={() => setResetting(u)}>Reset password</button>{' '}
-                      {u.id !== me.id && <button className="btn small danger" onClick={() => remove(u)}>Delete</button>}
+                      {u.id !== me.id && <button className="btn small danger" onClick={() => setUserToDelete(u)}>Delete</button>}
                     </td>
                   </tr>
                 ))}

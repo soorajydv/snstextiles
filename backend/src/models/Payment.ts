@@ -9,6 +9,13 @@ const paymentSchema = new Schema(
     method: { type: String, enum: PAYMENT_METHODS, required: true },
     reference: { type: String, trim: true, default: '' },
     note: { type: String, trim: true, default: '' },
+    proof: {
+      storedName: { type: String, default: null },
+      originalName: { type: String, default: '' },
+      mimeType: { type: String, default: '' },
+      size: { type: Number, default: 0 },
+      uploadedBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
+    },
     receivedAt: { type: Date, default: Date.now },
     recordedBy: { type: Schema.Types.ObjectId, ref: 'User' },
   },

@@ -5,7 +5,7 @@ import { api } from '@/lib/api';
 import { useAuth } from '@/components/AuthProvider';
 import { useToast } from '@/components/Toast';
 import { LocalFilePreview } from '@/components/LocalFilePreview';
-import { Field, Notice, PageHeader, errorMessage } from '@/components/ui';
+import { ConfirmModal, Field, Notice, PageHeader, errorMessage } from '@/components/ui';
 import { roleLabel } from '@/lib/format';
 import { AVATAR_EXTENSIONS, MAX_AVATAR_BYTES, validateUploadFile } from '@/lib/uploads';
 
@@ -139,20 +139,25 @@ function DeleteAccount({ logout }: { logout: () => Promise<void> }) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!confirm('Delete your account permanently? This cannot be undone.')) return;
+    setDeleteConfirmOpen(true);
+  }
+  async function deleteAccount() {
     setBusy(true);
     setError('');
     try {
       await api('/auth/account', { method: 'DELETE', body: { password } });
+      setDeleteConfirmOpen(false);
       await logout();
     } catch (err) {
       setError(errorMessage(err));
       setBusy(false);
     }
   }
-  return <section className="card">
+  return <>
+  <section className="card">
     <h2 className="red">Delete account</h2>
     <div className="card-sub" style={{ marginBottom: 14 }}>This permanently removes your account and cannot be undone.</div>
     {error && <Notice tone="error" style={{ marginBottom: 14 }}>{error}</Notice>}
@@ -160,5 +165,7 @@ function DeleteAccount({ logout }: { logout: () => Promise<void> }) {
       <Field label="Current password" hint="Required to confirm account deletion"><input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} /></Field>
       <button className="btn danger" style={{ marginTop: 16 }} disabled={busy}>{busy ? 'Deleting…' : 'Delete my account'}</button>
     </form>
-  </section>;
+  </section>
+  {deleteConfirmOpen && <ConfirmModal title="Delete account" message="Delete your account permanently? This cannot be undone." confirmLabel="Delete account" onClose={() => setDeleteConfirmOpen(false)} onConfirm={deleteAccount} />}
+  </>;
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import type { Order } from '@/lib/types';
 import { daysUntil, dueLabel, fmtMoney } from '@/lib/format';
@@ -82,10 +82,33 @@ export function Modal({ title, onClose, children, wide }: { title: string; onClo
   );
 }
 
+export function ConfirmModal({ title, message, confirmLabel = 'Confirm', onClose, onConfirm, danger = true }: { title: string; message: string; confirmLabel?: string; onClose: () => void; onConfirm: () => void | Promise<void>; danger?: boolean }) {
+  const [busy, setBusy] = useState(false);
+  async function confirm() {
+    setBusy(true);
+    try {
+      await onConfirm();
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <Modal title={title} onClose={busy ? () => undefined : onClose}>
+      <p style={{ lineHeight: 1.6, marginBottom: 18 }}>{message}</p>
+      <div className="form-actions">
+        <button type="button" className="btn" onClick={onClose} disabled={busy}>Cancel</button>
+        <button type="button" className={`btn ${danger ? 'danger' : 'primary'}`} onClick={confirm} disabled={busy}>{busy ? 'Please wait…' : confirmLabel}</button>
+      </div>
+    </Modal>
+  );
+}
+
 export function Field({ label, children, hint, error, full }: { label: string; children: ReactNode; hint?: string; error?: string; full?: boolean }) {
+  const required = label.endsWith(' *');
+  const visibleLabel = required ? label.slice(0, -2) : label;
   return (
     <div className={`field ${full ? 'full' : ''}`}>
-      <label>{label}</label>
+      <label>{visibleLabel}{required && <span className="required-mark" aria-hidden="true"> *</span>}</label>
       {children}
       {error ? <span className="error-text">{error}</span> : hint ? <small>{hint}</small> : null}
     </div>

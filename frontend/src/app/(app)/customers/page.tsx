@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { api, useApi } from '@/lib/api';
 import { useAuth } from '@/components/AuthProvider';
 import { useToast } from '@/components/Toast';
-import { Badge, Empty, Field, Modal, Notice, PageHeader, Spinner, StatCard, errorMessage } from '@/components/ui';
+import { Badge, ConfirmModal, Empty, Field, Modal, Notice, PageHeader, Spinner, StatCard, errorMessage } from '@/components/ui';
 import { fmtDate, fmtMoney } from '@/lib/format';
 import type { Customer, Order } from '@/lib/types';
 
@@ -18,6 +18,7 @@ export default function CustomersPage() {
   const [page, setPage] = useState(1);
   const [editing, setEditing] = useState<Customer | 'new' | null>(null);
   const [viewing, setViewing] = useState<Customer | null>(null);
+  const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
 
   useEffect(() => {
     const t = setTimeout(() => setDebounced(search), 300);
@@ -31,9 +32,9 @@ export default function CustomersPage() {
   const totals = customers.reduce((a, c) => ({ value: a.value + c.orderValue, outstanding: a.outstanding + c.outstanding, active: a.active + c.activeOrders }), { value: 0, outstanding: 0, active: 0 });
 
   async function remove(c: Customer) {
-    if (!confirm(`Delete ${c.name}?`)) return;
     try {
       await api(`/customers/${c.id}`, { method: 'DELETE' });
+      setCustomerToDelete(null);
       toast(`${c.name} deleted`);
       reload();
     } catch (err) {
@@ -49,6 +50,7 @@ export default function CustomersPage() {
         subtitle="Clubs, schools and teams with their order history and balances."
         actions={canManage && <button className="btn primary" onClick={() => setEditing('new')}>＋ Add customer</button>}
       />
+      {customerToDelete && <ConfirmModal title="Delete customer" message={`Delete ${customerToDelete.name}?`} confirmLabel="Delete customer" onClose={() => setCustomerToDelete(null)} onConfirm={() => remove(customerToDelete)} />}
       <div className="stats">
         <StatCard label="Customers" value={data?.total ?? '—'} note={debounced ? 'Matching search' : 'In directory'} icon="♙" />
         <StatCard label="With active orders" value={customers.filter((c) => c.activeOrders).length} note={`${totals.active} orders in progress`} icon="▤" />
@@ -84,7 +86,7 @@ export default function CustomersPage() {
                     <td><Badge>{c.orderCount === 0 ? 'New' : c.outstanding ? 'Balance due' : 'Settled'}</Badge></td>
                     <td onClick={(e) => e.stopPropagation()}>
                       {canManage && <button className="btn small" onClick={() => setEditing(c)}>Edit</button>}{canManage && ' '}
-                      {meta.permissions.includes('customers.delete') && c.orderCount === 0 && <button className="btn small danger" onClick={() => remove(c)}>Delete</button>}
+                      {meta.permissions.includes('customers.delete') && c.orderCount === 0 && <button className="btn small danger" onClick={() => setCustomerToDelete(c)}>Delete</button>}
                     </td>
                   </tr>
                 ))}

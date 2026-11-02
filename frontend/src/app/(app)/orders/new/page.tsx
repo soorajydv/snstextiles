@@ -9,7 +9,7 @@ import { Field, Notice, PageHeader } from '@/components/ui';
 import { LocalFilePreview } from '@/components/LocalFilePreview';
 import { fmtMoney, toInputDate } from '@/lib/format';
 import type { Customer, Order, Player } from '@/lib/types';
-import { DESIGN_EXTENSIONS, JERSEY_EXTENSIONS, MAX_UPLOAD_BYTES, validateUploadFile } from '@/lib/uploads';
+import { AVATAR_EXTENSIONS, DESIGN_EXTENSIONS, JERSEY_EXTENSIONS, MAX_UPLOAD_BYTES, validateUploadFile } from '@/lib/uploads';
 
 const NEW_CUSTOMER = '__new__';
 const MAX_ROWS_RENDERED = 300;
@@ -41,6 +41,7 @@ export default function NewOrderPage() {
   const [advanceMethod, setAdvanceMethod] = useState(meta.paymentMethods[0]);
   const [comments, setComments] = useState('');
   const [jerseyImage, setJerseyImage] = useState<File | null>(null);
+  const [advanceProof, setAdvanceProof] = useState<File | null>(null);
   const [files, setFiles] = useState<File[]>([]);
   const [players, setPlayers] = useState<Player[]>(() => Array.from({ length: 18 }, () => emptyPlayer('Half sleeve')));
   const [defaultSleeve, setDefaultSleeve] = useState('Half sleeve');
@@ -107,12 +108,26 @@ export default function NewOrderPage() {
     if (message) toast(message, 'error');
   }
 
+  function selectAdvanceProof(file: File | undefined) {
+    if (!file) { setAdvanceProof(null); return; }
+    const message = validateUploadFile(file, { maxBytes: MAX_UPLOAD_BYTES, extensions: AVATAR_EXTENSIONS, label: 'Advance proof image' });
+    setUploadErrors((current) => ({ ...current, advanceProof: message }));
+    setAdvanceProof(message ? null : file);
+    if (message) toast(message, 'error');
+  }
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
     setFieldErrors({});
     if (Object.values(uploadErrors).some(Boolean)) {
       toast('Please fix the upload errors before submitting.', 'error');
+      return;
+    }
+    if (!isCustomer && Number(advance) > 0 && advanceMethod !== 'Cash' && !advanceProof) {
+      const message = 'Upload proof of payment for non-cash advances.';
+      setUploadErrors((current) => ({ ...current, advanceProof: message }));
+      toast(message, 'error');
       return;
     }
     if (!isCustomer && !customerId) {
@@ -141,6 +156,7 @@ export default function NewOrderPage() {
     const form = new FormData();
     form.append('data', JSON.stringify(data));
     if (jerseyImage) form.append('jerseyImage', jerseyImage);
+    if (advanceProof) form.append('advanceProof', advanceProof);
     files.forEach((f) => form.append('files', f));
     try {
       const { order } = await api<{ order: Order }>('/orders', { method: 'POST', form });
@@ -174,6 +190,10 @@ export default function NewOrderPage() {
         <section className="card">
           <h2 style={{ marginBottom: 16 }}>Customer & kit</h2>
           <div className="form-grid">
+            <Field label="Jersey image" hint="PNG, JPG, WEBP, GIF or PDF · up to 15 MB" error={uploadErrors.jerseyImage}>
+              <input type="file" accept="image/png,image/jpeg,image/webp,image/gif,.pdf" onChange={(e) => { selectJerseyImage(e.target.files?.[0]); e.currentTarget.value = ''; }} />
+              {jerseyImage && <LocalFilePreview file={jerseyImage} />}
+            </Field>
             {!isCustomer && (
               <Field label="Customer / club *" error={fieldErrors.customerId}>
                 <select value={customerId} onChange={(e) => setCustomerId(e.target.value)}>
@@ -233,6 +253,10 @@ export default function NewOrderPage() {
                     </select>
                   </div>
                 </Field>
+                <Field label="Advance proof image" hint={Number(advance) <= 0 ? 'Enter an advance amount first' : advanceMethod === 'Cash' ? 'Optional for cash advances · PNG, JPG, WEBP or GIF' : 'Required for non-cash advances · PNG, JPG, WEBP or GIF'} error={uploadErrors.advanceProof}>
+                  <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" disabled={Number(advance) <= 0} onChange={(e) => { selectAdvanceProof(e.target.files?.[0]); e.currentTarget.value = ''; }} />
+                  {advanceProof && <LocalFilePreview file={advanceProof} />}
+                </Field>
               </>
             )}
           </div>
@@ -241,10 +265,6 @@ export default function NewOrderPage() {
         <section className="card">
           <h2 style={{ marginBottom: 16 }}>Design references</h2>
           <div className="form-grid">
-            <Field label="Jersey image" hint={`PNG, JPG, WEBP, GIF or PDF · up to ${MAX_UPLOAD_BYTES / (1024 * 1024)} MB`} error={uploadErrors.jerseyImage}>
-              <input type="file" accept="image/png,image/jpeg,image/webp,image/gif,.pdf" onChange={(e) => { selectJerseyImage(e.target.files?.[0]); e.currentTarget.value = ''; }} />
-              {jerseyImage && <LocalFilePreview file={jerseyImage} />}
-            </Field>
             <Field label="Logos / artwork files" hint={`Up to 10 files · ${MAX_UPLOAD_BYTES / (1024 * 1024)} MB each`} error={uploadErrors.files}>
               <input type="file" multiple accept="image/png,image/jpeg,image/webp,image/gif,.pdf,.ai,.eps,.svg,.psd,.cdr" onChange={(e) => { selectReferenceFiles(Array.from(e.target.files ?? [])); e.currentTarget.value = ''; }} />
               {files.map((file) => <LocalFilePreview key={`${file.name}-${file.lastModified}`} file={file} />)}
