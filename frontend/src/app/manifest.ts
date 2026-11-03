@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: 'SNS Textiles Factory Management',
     short_name: 'SNS Textiles',
     description: 'Order, production, billing and delivery management for SNS Textiles.',
-    start_url: '/dashboard',
+    start_url: '/admin/dashboard',
     scope: '/',
     display: 'standalone',
     orientation: 'any',
