@@ -100,7 +100,7 @@ export default function SettingsPage() {
               <Field label="Currency / timezone"><input value={`${form.currency} · ${form.timezone}`} disabled /></Field>
               <Field label="Order number prefix" hint={`Next orders: ${form.orderPrefix.toUpperCase()}-#####`}><input required value={form.orderPrefix} onChange={set('orderPrefix')} /></Field>
               <Field label="Invoice prefix" hint={`e.g. ${form.invoicePrefix.toUpperCase()}-${new Date().getFullYear()}-0001`}><input required value={form.invoicePrefix} onChange={set('invoicePrefix')} /></Field>
-              <Field label="Due soon window (days)"><input type="number" min={1} max={30} value={form.dueSoonDays} onChange={set('dueSoonDays')} /></Field>
+              <Field label="Show orders due within (days)" hint="Example: If you enter 3, orders with a delivery date of today, tomorrow, or within the next 3 days will show as Due soon."><input type="number" min={1} max={30} value={form.dueSoonDays} onChange={set('dueSoonDays')} /></Field>
               <Field label="Invoice footer" full><input value={form.invoiceFooter} onChange={set('invoiceFooter')} /></Field>
             </div>
           </section>
