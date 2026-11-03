@@ -9,7 +9,7 @@ async function main() {
   await ensureSystemRoles();
   if (process.env.SEED_ON_START === 'true') await seedIfEmpty();
   createApp().listen(env.port, () => {
-    console.log(`S & S Textiles API listening on http://localhost:${env.port}`);
+    console.log(`SNS Textiles API listening on http://localhost:${env.port}`);
   });
 }
 

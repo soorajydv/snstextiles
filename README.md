@@ -1,4 +1,28 @@
-# S & S Textiles: Factory OS
+# SNS Textiles: Factory Management
+
+## GitHub Actions + PM2 deployment
+
+The repository includes `.github/workflows/deploy.yml`. It type-checks and builds both applications for pull requests and pushes. A push to `main` additionally deploys the checked-out commit to the production server and reloads both PM2 processes from `ecosystem.config.cjs`.
+
+### Server setup
+
+Prepare the server once:
+
+1. Install Node.js 22, Git and PM2.
+2. Clone this repository into the deployment directory.
+3. Create `backend/.env` with the production API values (`MONGODB_URI`, `JWT_SECRET`, `CORS_ORIGINS`, SMTP settings, and upload settings).
+4. Create `frontend/.env.local` with `API_URL=http://127.0.0.1:4000` (or the internal API URL reachable by the Next.js server).
+5. Ensure the deployment user can run `pm2` and the repository directory is writable.
+
+The workflow expects these GitHub Actions secrets:
+
+- `DEPLOY_HOST`
+- `DEPLOY_USER`
+- `DEPLOY_SSH_KEY`
+- `DEPLOY_PATH`
+- Optional: `DEPLOY_PORT`
+
+The optional repository variable `API_URL` overrides the frontend build-time API URL. Runtime secrets stay on the server and are not stored in GitHub.
 
 Order, production, billing and delivery management for a sportswear (jersey/kit) factory.
 

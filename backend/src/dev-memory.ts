@@ -15,7 +15,7 @@ async function main() {
   await ensureSystemRoles();
   await seedIfEmpty();
   const server = createApp().listen(env.port, () => {
-    console.log(`S & S Textiles API (in-memory MongoDB) listening on http://localhost:${env.port}`);
+    console.log(`SNS Textiles API (in-memory MongoDB) listening on http://localhost:${env.port}`);
   });
   const shutdown = async () => {
     server.close();

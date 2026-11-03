@@ -1,8 +1,8 @@
 {
-  "name": "ss-textiles-api",
+  "name": "snstextiles-api",
   "version": "0.1.0",
   "private": true,
-  "description": "S & S Textiles Factory OS - REST API (Express + MongoDB + TypeScript)",
+  "description": "SNS Textiles factory management REST API (Express + MongoDB + TypeScript)",
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",

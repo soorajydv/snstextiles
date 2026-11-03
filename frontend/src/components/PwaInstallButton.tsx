@@ -29,7 +29,7 @@ export function PwaInstallButton() {
       setPrompt(null);
       return;
     }
-    if (ios) window.alert('To install S&S Textiles: tap the Share button in Safari, then choose “Add to Home Screen”.');
+    if (ios) window.alert('To install SNS Textiles: tap the Share button in Safari, then choose “Add to Home Screen”.');
   }
 
   if (!prompt && !ios) return null;

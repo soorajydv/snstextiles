@@ -128,7 +128,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, [pathname]);
 
   const visible = NAV.map((g) => ({ ...g, items: g.items.filter((i) => !i.permission || meta.permissions.includes(i.permission)) })).filter((g) => g.items.length);
-  const title = user.role === 'customer' && section === 'orders' ? 'My orders' : TITLES[section] ?? 'S & S Textiles';
+  const title = user.role === 'customer' && section === 'orders' ? 'My orders' : TITLES[section] ?? 'SNS Textiles';
   const notificationIcon = (type?: string): IconName => type === 'stock' ? 'inventory' : type === 'attendance' ? 'attendance' : type === 'approval' ? 'orders' : type === 'overdue' ? 'alert' : 'bell';
   const unreadCount = notifications.filter((notification) => !notification.read).length;
 

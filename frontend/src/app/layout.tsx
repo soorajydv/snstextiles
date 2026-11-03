@@ -4,11 +4,11 @@ import { ThemeProvider } from '@/components/ThemeProvider';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'S & S Textiles — Factory OS',
-  description: 'Order, production, billing and delivery management for S & S Textiles',
-  applicationName: 'S & S Textiles Factory OS',
+  title: 'SNS Textiles — Factory Management',
+  description: 'Order, production, billing and delivery management for SNS Textiles',
+  applicationName: 'SNS Textiles Factory Management',
   manifest: '/manifest.webmanifest',
-  appleWebApp: { capable: true, title: 'S&S Textiles', statusBarStyle: 'default' },
+  appleWebApp: { capable: true, title: 'SNS Textiles', statusBarStyle: 'default' },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

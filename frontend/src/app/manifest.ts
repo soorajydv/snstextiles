@@ -2,9 +2,9 @@ import type { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'S & S Textiles Factory OS',
-    short_name: 'S&S Textiles',
-    description: 'Order, production, billing and delivery management for S & S Textiles.',
+    name: 'SNS Textiles Factory Management',
+    short_name: 'SNS Textiles',
+    description: 'Order, production, billing and delivery management for SNS Textiles.',
     start_url: '/dashboard',
     scope: '/',
     display: 'standalone',
