@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Icon } from './Icon';
+import { appPath } from '@/lib/paths';
 
 type InstallPrompt = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }> };
 
@@ -10,7 +11,7 @@ export function PwaInstallButton() {
   const [ios, setIos] = useState(false);
 
   useEffect(() => {
-    if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => undefined);
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register(appPath('/sw.js')).catch(() => undefined);
     const standalone = window.matchMedia('(display-mode: standalone)').matches || Boolean((navigator as Navigator & { standalone?: boolean }).standalone);
     if (standalone) return;
     setIos(/iphone|ipad|ipod/i.test(navigator.userAgent));

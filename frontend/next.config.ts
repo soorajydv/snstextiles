@@ -13,6 +13,7 @@ const nextConfig: NextConfig = {
       { source: `${APP_BASE_PATH}/api/:path*`, destination: `${API_URL}/api/:path*` },
       { source: `${APP_BASE_PATH}/_next/:path*`, destination: '/_next/:path*' },
       { source: `${APP_BASE_PATH}/manifest.webmanifest`, destination: '/manifest.webmanifest' },
+      { source: `${APP_BASE_PATH}/sw.js`, destination: '/sw.js' },
       { source: `${APP_BASE_PATH}/icon.svg`, destination: '/icon.svg' },
       { source: APP_BASE_PATH, destination: '/admin' },
       { source: `${APP_BASE_PATH}/:path*`, destination: '/admin/:path*' },

@@ -165,7 +165,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className={`layout ${collapsed ? 'sidebar-collapsed' : ''}`}>
       <aside className={`sidebar ${open ? 'open' : ''}`}>
         <div className="brand">
-          {settings.logoUrl ? <img className="brand-logo" src={settings.logoUrl} alt="Business logo" /> : <div className="brand-mark">S&amp;S</div>}
+          {settings.logoUrl ? <img className="brand-logo" src={appPath(settings.logoUrl)} alt="Business logo" /> : <div className="brand-mark">S&amp;S</div>}
           <div className="brand-copy">
             <div className="brand-name">{settings.businessName.replace(/ PVT LTD$/i, '')}</div>
             <div className="brand-sub">{user.role === 'customer' ? 'CUSTOMER PORTAL' : 'FACTORY MANAGEMENT'}</div>
