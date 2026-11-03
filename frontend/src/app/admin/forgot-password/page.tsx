@@ -1,7 +1,7 @@
 'use client';
 
 import { Suspense, useState } from 'react';
-import Link from 'next/link';
+import { AppLink as Link } from '@/components/AppLink';
 import { api } from '@/lib/api';
 import { Field, Notice, errorMessage } from '@/components/ui';
 

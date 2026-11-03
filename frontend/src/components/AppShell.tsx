@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import Link from 'next/link';
+import { AppLink as Link } from './AppLink';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from './AuthProvider';
 import { initials, roleLabel } from '@/lib/format';
@@ -11,6 +11,7 @@ import { useTheme } from './ThemeProvider';
 import { Icon, type IconName } from './Icon';
 import { PwaInstallButton } from './PwaInstallButton';
 import { ConfirmModal } from './ui';
+import { appPath } from '@/lib/paths';
 
 type NavItem = { href: string; label: string; icon: IconName; permission?: Permission };
 type NotificationItem = { id: string; type?: string; title: string; body: string; href: string; read: boolean };
@@ -175,7 +176,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <div className="nav-label">{user.role === 'customer' && group.label === 'Administration' ? 'Account' : group.label}</div>
             <nav className="nav-group">
               {group.items.map((item) => (
-                <Link key={item.href} href={item.href} className={`nav-btn ${pathname.startsWith(item.href) ? 'active' : ''}`}>
+                <Link key={item.href} href={item.href} className={`nav-btn ${pathname.startsWith(appPath(item.href)) ? 'active' : ''}`}>
                   <span className="nav-icon"><Icon name={item.icon} size={17} /></span>
                   <span className="nav-text">{user.role === 'customer' && item.href === '/orders' ? 'My orders' : item.label}</span>
                 </Link>
@@ -207,7 +208,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               <button className="icon-btn" onClick={() => setNotificationsOpen((value) => !value)} aria-label="Open notifications" aria-expanded={notificationsOpen}><Icon name="bell" size={17} />{unreadCount > 0 && <span className="notification-dot">{unreadCount > 9 ? '9+' : unreadCount}</span>}</button>
               {notificationsOpen && <div className="notification-menu">
                 <div className="notification-head"><div><h3>Notifications</h3><span>{unreadCount ? `${unreadCount} unread alert${unreadCount === 1 ? '' : 's'}` : 'You’re all caught up'}</span></div><div className="notification-head-actions">{unreadCount > 0 && <button className="notification-mark-all" onClick={markAllNotificationsRead} disabled={notificationsBusy}>{notificationsBusy ? 'Saving…' : 'Mark all as read'}</button>}<button className="notification-close" onClick={() => setNotificationsOpen(false)} aria-label="Close notifications"><Icon name="close" size={15} /></button></div></div>
-                {notifications.length ? <div className="notification-list">{notifications.map((notification) => <Link key={notification.id} href={notification.href} className={`notification-item ${notification.read ? 'read' : ''}`} onClick={async (event) => { event.preventDefault(); await markNotificationRead(notification.id); setNotificationsOpen(false); router.push(notification.href); }}><span className="notification-icon"><Icon name={notificationIcon(notification.type)} size={15} /></span><span className="notification-copy"><strong>{notification.title}</strong><span>{notification.body}</span></span>{!notification.read && <span className="notification-unread" aria-label="Unread notification" />}</Link>)}</div> : <div className="empty">No new notifications.</div>}
+                {notifications.length ? <div className="notification-list">{notifications.map((notification) => <Link key={notification.id} href={notification.href} className={`notification-item ${notification.read ? 'read' : ''}`} onClick={async (event) => { event.preventDefault(); await markNotificationRead(notification.id); setNotificationsOpen(false); router.push(appPath(notification.href)); }}><span className="notification-icon"><Icon name={notificationIcon(notification.type)} size={15} /></span><span className="notification-copy"><strong>{notification.title}</strong><span>{notification.body}</span></span>{!notification.read && <span className="notification-unread" aria-label="Unread notification" />}</Link>)}</div> : <div className="empty">No new notifications.</div>}
               </div>}
             </div>
             <div className="user-chip" ref={userMenuRef}>

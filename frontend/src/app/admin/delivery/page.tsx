@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
+import { AppLink as Link } from '@/components/AppLink';
 import { useApi } from '@/lib/api';
 import { useAuth } from '@/components/AuthProvider';
 import { Badge, DueDate, Empty, Notice, PageHeader, Spinner, StatCard } from '@/components/ui';

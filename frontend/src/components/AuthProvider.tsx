@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useState, type React
 import { usePathname, useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import type { Me, Meta, Settings } from '@/lib/types';
+import { appPath } from '@/lib/paths';
 
 interface AuthState {
   user: Me;
@@ -36,7 +37,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const [meta, { settings }] = await Promise.all([api<Meta>('/meta'), api<{ settings: Settings }>('/settings')]);
         if (!cancelled) setState({ user, meta, settings });
       } catch {
-        if (!cancelled) router.replace(`/portal/login?next=${encodeURIComponent(pathname)}`);
+        if (!cancelled) router.replace(appPath(`/login?next=${encodeURIComponent(pathname)}`));
       }
     })();
     return () => {
@@ -58,7 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     await api('/auth/logout', { method: 'POST' }).catch(() => undefined);
-    router.replace('/login');
+    router.replace(appPath('/login'));
   }, [router]);
 
   if (!state) return <div className="loading-screen"><div className="spinner" aria-label="Loading" /></div>;

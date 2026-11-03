@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { appPath } from './paths';
 
 export class ApiError extends Error {
   constructor(
@@ -16,7 +17,7 @@ type Options = { method?: string; body?: unknown; form?: FormData; signal?: Abor
 
 /** Calls the Express API through the Next.js /api proxy. The session lives in an httpOnly cookie. */
 export async function api<T = unknown>(path: string, { method = 'GET', body, form, signal }: Options = {}): Promise<T> {
-  const res = await fetch(`/api${path}`, {
+  const res = await fetch(appPath(`/api${path}`), {
     method,
     credentials: 'include',
     headers: body !== undefined ? { 'Content-Type': 'application/json' } : undefined,
@@ -27,7 +28,7 @@ export async function api<T = unknown>(path: string, { method = 'GET', body, for
   const data = isJson ? await res.json() : null;
   if (!res.ok) {
     if (res.status === 401 && typeof window !== 'undefined' && !path.startsWith('/auth/')) {
-      window.location.href = `/login?next=${encodeURIComponent(window.location.pathname)}`;
+      window.location.href = appPath(`/login?next=${encodeURIComponent(window.location.pathname)}`);
     }
     const message = data?.error
       ?? (res.status === 413 ? 'Upload is too large. Each file must be no more than 15 MB.' : `Request failed (${res.status})`);

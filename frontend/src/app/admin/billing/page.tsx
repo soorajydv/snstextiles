@@ -1,7 +1,7 @@
 'use client';
 
 import { Suspense, useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
+import { AppLink as Link } from '@/components/AppLink';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { api, useApi } from '@/lib/api';
 import { useAuth } from '@/components/AuthProvider';
@@ -10,6 +10,7 @@ import { Badge, ConfirmModal, Empty, Notice, PageHeader, Spinner, StatCard, erro
 import { RecordPaymentModal } from '@/components/OrderModals';
 import { fmtDate, fmtMoney } from '@/lib/format';
 import type { Customer, Order, Payment } from '@/lib/types';
+import { appPath } from '@/lib/paths';
 
 function CustomerPicker({ customers, selectedId, onSelect }: { customers: Customer[]; selectedId: string | null; onSelect: (id: string) => void }) {
   const selected = customers.find((customer) => customer.id === selectedId);
@@ -101,7 +102,7 @@ function Billing() {
     if (id) next.set('customer', id);
     else next.delete('customer');
     const query = next.toString();
-    router.replace(query ? `/billing?${query}` : '/billing');
+    router.replace(query ? appPath(`/billing?${query}`) : appPath('/billing'));
   }
 
   const selectedCustomer = customers.data?.customers.find((customer) => customer.id === customerFilter);

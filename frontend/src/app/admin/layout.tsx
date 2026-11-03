@@ -1,10 +1,5 @@
-import { AuthProvider } from '@/components/AuthProvider';
-import { AppShell } from '@/components/AppShell';
+import { AdminLayoutClient } from './AdminLayoutClient';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <AuthProvider>
-      <AppShell>{children}</AppShell>
-    </AuthProvider>
-  );
+  return <AdminLayoutClient>{children}</AdminLayoutClient>;
 }

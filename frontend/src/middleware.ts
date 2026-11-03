@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { APP_BASE_PATH } from '@/lib/paths';
 
 const adminSegments = new Set([
   'activity',
@@ -34,7 +35,7 @@ export function middleware(request: NextRequest) {
 
   if (adminSegments.has(segment)) {
     const url = request.nextUrl.clone();
-    url.pathname = `/portal${pathname}`;
+    url.pathname = `${APP_BASE_PATH}${pathname}`;
     return NextResponse.redirect(url);
   }
 

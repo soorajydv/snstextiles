@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
 import { Field, Notice, errorMessage } from '@/components/ui';
 import { useTheme } from '@/components/ThemeProvider';
+import { appPath } from '@/lib/paths';
 
 const DEMO = [
   ['Owner', 'owner@sstextiles.com'],
@@ -32,7 +33,7 @@ function LoginForm() {
     try {
       await api('/auth/login', { method: 'POST', body: { email, password } });
       const next = params.get('next');
-      router.replace(next && next.startsWith('/') && !next.startsWith('//') ? next : '/dashboard');
+      router.replace(next && next.startsWith('/') && !next.startsWith('//') ? next : appPath('/dashboard'));
     } catch (err) {
       setError(errorMessage(err));
       setBusy(false);
@@ -58,7 +59,7 @@ function LoginForm() {
         <input type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
       </Field>
       <button className="btn primary block" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>
-      <div style={{ textAlign: 'right', marginTop: 10 }}><a className="link-btn" href="/forgot-password">Forgot password?</a></div>
+      <div style={{ textAlign: 'right', marginTop: 10 }}><a className="link-btn" href={appPath('/forgot-password')}>Forgot password?</a></div>
       {process.env.NODE_ENV !== 'production' && (
         <div className="card" style={{ marginTop: 6 }}>
           <div className="eyebrow" style={{ marginBottom: 8 }}>Demo accounts · password Password@123</div>

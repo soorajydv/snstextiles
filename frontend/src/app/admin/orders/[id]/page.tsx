@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
+import { AppLink as Link } from '@/components/AppLink';
 import { useParams, useRouter } from 'next/navigation';
 import { api, useApi } from '@/lib/api';
 import { useAuth } from '@/components/AuthProvider';
@@ -12,6 +12,7 @@ import { DeliverModal, EditOrderModal, RecordPaymentModal, TextPromptModal } fro
 import { STAGE_ORDER, STAGE_SHORT, canCompleteStage, canSeeMoney, fileSize, fmtDate, fmtDateTime, fmtMoney } from '@/lib/format';
 import type { Order, Payment, StoredFile } from '@/lib/types';
 import { DESIGN_EXTENSIONS, validateUploadFile } from '@/lib/uploads';
+import { appPath } from '@/lib/paths';
 
 type ModalKind = null | 'edit' | 'payment' | 'deliver' | 'advance' | 'sendBack' | 'feedback' | 'upload' | 'approve';
 
@@ -73,7 +74,7 @@ export default function OrderDetailPage() {
       await api(`/orders/${order.id}`, { method: 'DELETE' });
       setDeleteConfirmOpen(false);
       toast(`${order.orderNo} deleted`);
-      router.replace('/orders');
+      router.replace(appPath('/orders'));
     } catch (err) {
       toast(errorMessage(err), 'error');
     }
@@ -341,7 +342,7 @@ export default function OrderDetailPage() {
             const res = await api<{ order: Order }>(`/orders/${order.id}/advance`, { method: 'POST', body: { note } });
             toast(`${order.orderNo} moved to ${res.order.stageLabel}`);
             // Department users lose access once the job leaves their queue.
-            if (role !== 'owner' && role !== 'accounts') router.push('/production');
+            if (role !== 'owner' && role !== 'accounts') router.push(appPath('/production'));
             else update(res.order);
           }}
         />

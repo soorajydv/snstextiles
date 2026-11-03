@@ -9,6 +9,7 @@ import { Field, Notice, PageHeader } from '@/components/ui';
 import { LocalFilePreview } from '@/components/LocalFilePreview';
 import { fmtMoney, toInputDate } from '@/lib/format';
 import type { Customer, Order, Player } from '@/lib/types';
+import { appPath } from '@/lib/paths';
 import { AVATAR_EXTENSIONS, DESIGN_EXTENSIONS, JERSEY_EXTENSIONS, MAX_UPLOAD_BYTES, validateUploadFile } from '@/lib/uploads';
 
 const NEW_CUSTOMER = '__new__';
@@ -161,7 +162,7 @@ export default function NewOrderPage() {
     try {
       const { order } = await api<{ order: Order }>('/orders', { method: 'POST', form });
       toast(`Order ${order.orderNo} created`);
-      router.push(`/orders/${order.id}`);
+      router.push(appPath(`/orders/${order.id}`));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not create order');
       if (err instanceof ApiError && err.details) setFieldErrors(err.details);

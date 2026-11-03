@@ -1,10 +1,11 @@
 'use client';
 
 import { Suspense, useState } from 'react';
-import Link from 'next/link';
+import { AppLink as Link } from '@/components/AppLink';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
 import { Field, Notice, errorMessage } from '@/components/ui';
+import { appPath } from '@/lib/paths';
 
 function ResetPasswordForm() {
   const router = useRouter();
@@ -22,7 +23,7 @@ function ResetPasswordForm() {
     setError('');
     try {
       await api('/auth/reset-password', { method: 'POST', body: { token, newPassword: password } });
-      router.replace('/login?reset=success');
+      router.replace(appPath('/login?reset=success'));
     } catch (err) {
       setError(errorMessage(err));
       setBusy(false);

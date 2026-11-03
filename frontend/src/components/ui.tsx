@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, type ReactNode } from 'react';
-import Link from 'next/link';
+import { AppLink as Link } from './AppLink';
 import type { Order } from '@/lib/types';
 import { daysUntil, dueLabel, fmtMoney } from '@/lib/format';
 import { Icon, type IconName } from './Icon';

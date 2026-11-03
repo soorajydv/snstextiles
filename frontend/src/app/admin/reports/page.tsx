@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useApi } from '@/lib/api';
 import { Empty, Notice, PageHeader, Spinner, StatCard } from '@/components/ui';
 import { fmtMoney } from '@/lib/format';
+import { appPath } from '@/lib/paths';
 
 interface Summary {
   byStage: { stage: string; label: string; orders: number; sets: number }[];
@@ -48,7 +49,7 @@ export default function ReportsPage() {
               <option value={6}>Last 6 months</option>
               <option value={12}>Last 12 months</option>
             </select>
-            <a className="btn" href="/api/reports/orders.csv">↓ Export orders (CSV)</a>
+            <a className="btn" href={appPath('/api/reports/orders.csv')}>↓ Export orders (CSV)</a>
           </>
         }
       />
