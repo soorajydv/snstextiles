@@ -18,6 +18,8 @@ import { auditRouter, metaRouter, settingsRouter } from './routes/settings';
 import notificationRoutes from './routes/notifications';
 import attendanceRoutes from './features/attendance/attendance.route';
 import roleRoutes from './routes/roles';
+import { getSettings } from './models/Settings';
+import { storedFilePath } from './lib/uploads';
 
 export function createApp() {
   const app = express();
@@ -30,6 +32,15 @@ export function createApp() {
 
   app.get('/api/health', (_req, res) => {
     res.json({ ok: true, time: new Date().toISOString() });
+  });
+
+  // The login page needs the business logo before a user has authenticated.
+  app.get('/api/public/business-logo', async (_req, res) => {
+    const settings = await getSettings();
+    if (!settings.logoStoredName) { res.status(404).end(); return; }
+    res.type(settings.logoMimeType ?? 'application/octet-stream').sendFile(storedFilePath(settings.logoStoredName), (err) => {
+      if (err && !res.headersSent) res.status(404).end();
+    });
   });
 
   app.use('/api/auth', authRoutes);

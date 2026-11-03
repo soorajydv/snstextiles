@@ -77,11 +77,13 @@ function LoginForm() {
 }
 
 export default function LoginPage() {
+  const [logoAvailable, setLogoAvailable] = useState(true);
+
   return (
     <div className="login-wrap">
       <div className="login-art">
         <div className="brand" style={{ borderBottom: 0 }}>
-          <div className="brand-mark">S&amp;S</div>
+          {logoAvailable ? <img className="brand-logo" src={appPath('/api/public/business-logo')} alt="Business logo" onError={() => setLogoAvailable(false)} /> : <div className="brand-mark">S&amp;S</div>}
           <div>
             <div className="brand-name">S &amp; S TEXTILES</div>
             <div className="brand-sub">FACTORY MANAGEMENT</div>
