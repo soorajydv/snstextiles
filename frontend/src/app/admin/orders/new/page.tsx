@@ -13,6 +13,7 @@ import { appPath } from '@/lib/paths';
 import { AVATAR_EXTENSIONS, DESIGN_EXTENSIONS, JERSEY_EXTENSIONS, MAX_UPLOAD_BYTES, PLAYER_LIST_EXTENSIONS, validateUploadFile } from '@/lib/uploads';
 
 const NEW_CUSTOMER = '__new__';
+const CUSTOM_STYLE = '__custom_style__';
 const MAX_ROWS_RENDERED = 300;
 
 const emptyPlayer = (sleeve: string): Player => ({ name: '', number: '', sleeve, jerseySize: '', shortsSize: '', trouserSize: '' });
@@ -33,6 +34,7 @@ export default function NewOrderPage() {
   const [newCustomer, setNewCustomer] = useState({ name: '', phone: '' });
   const [teamName, setTeamName] = useState('');
   const [productConfig, setProductConfig] = useState(meta.productConfigs[0]);
+  const [customProductConfig, setCustomProductConfig] = useState('');
   const [neckType, setNeckType] = useState(meta.neckTypes[0]);
   const [shortsColor, setShortsColor] = useState('');
   const [quantity, setQuantity] = useState(18);
@@ -53,7 +55,8 @@ export default function NewOrderPage() {
   const [uploadErrors, setUploadErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
 
-  const cfg = productConfig.toLowerCase();
+  const selectedProductConfig = productConfig === CUSTOM_STYLE ? customProductConfig : productConfig;
+  const cfg = selectedProductConfig.toLowerCase();
   const hasShorts = cfg.includes('shorts');
   const hasTrouser = cfg.includes('trouser');
   const plainShorts = cfg.includes('plain shorts');
@@ -159,7 +162,7 @@ export default function NewOrderPage() {
       customerId: customerId && customerId !== NEW_CUSTOMER ? customerId : undefined,
       newCustomer: customerId === NEW_CUSTOMER ? newCustomer : undefined,
       teamName: teamName || undefined,
-      productConfig,
+      productConfig: selectedProductConfig,
       neckType,
       shortsColor: plainShorts ? shortsColor : '',
       quantity: qty,
@@ -243,8 +246,17 @@ export default function NewOrderPage() {
                     <span>{p}</span>
                   </label>
                 ))}
+                <label className={`checkbox-card ${productConfig === CUSTOM_STYLE ? 'selected' : ''}`}>
+                  <input type="checkbox" checked={productConfig === CUSTOM_STYLE} onChange={() => setProductConfig(CUSTOM_STYLE)} />
+                  <span>＋ Custom style</span>
+                </label>
               </div>
             </Field>
+            {productConfig === CUSTOM_STYLE && (
+              <Field label="Custom style name *" full hint="Describe the jersey, shorts, trouser or other product style.">
+                <input required value={customProductConfig} onChange={(e) => setCustomProductConfig(e.target.value)} placeholder="e.g. Full sublimation jersey with track pants" />
+              </Field>
+            )}
             <Field label="Neck type *">
               <select value={neckType} onChange={(e) => setNeckType(e.target.value)}>
                 {meta.neckTypes.map((n) => <option key={n}>{n}</option>)}

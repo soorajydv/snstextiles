@@ -8,7 +8,7 @@ import { getSettings } from '../models/Settings';
 import { nextSequence } from '../models/Counter';
 import { currentUser, requirePermission, type AuthUser } from '../middleware/auth';
 import {
-  DELIVERY_METHODS, NECK_TYPES, PAYMENT_METHODS, PRODUCT_CONFIGS, SIZES, SLEEVES, STAGE_LABELS, STAGES, type Stage,
+  DELIVERY_METHODS, NECK_TYPES, PAYMENT_METHODS, SIZES, SLEEVES, STAGE_LABELS, STAGES, type Stage,
 } from '../lib/constants';
 import { assertObjectId, badRequest, conflict, escapeRegex, forbidden, notFound, pagination, parse } from '../lib/http';
 import {
@@ -33,7 +33,7 @@ const playerSchema = z.object({
 
 const specSchema = z.object({
   teamName: z.string().trim().max(120).optional(),
-  productConfig: z.enum(PRODUCT_CONFIGS),
+  productConfig: z.string().trim().min(1).max(120),
   neckType: z.enum(NECK_TYPES),
   shortsColor: z.string().trim().max(60).optional().default(''),
   quantity: z.coerce.number().int().min(1).max(5000),
@@ -204,6 +204,7 @@ router.post(
         quantity: body.quantity,
         dueDate: body.dueDate,
         playerListMode: body.playerListMode,
+        cuttingStatus: 'pending',
         unitRate,
         totalAmount: unitRate * body.quantity,
         players: body.players,
@@ -363,11 +364,28 @@ router.post('/:id/advance', requirePermission('orders.stage.complete'), async (r
   if (from === 'design' && !isArtworkApproved(order)) {
     throw conflict('Printing cannot start until the customer approves the latest artwork version');
   }
+  const cuttingStatus = order.cuttingStatus ?? (from === 'design' ? 'pending' : 'completed');
+  if (from === 'design' && cuttingStatus !== 'completed') {
+    throw conflict('Printing cannot start until Cutting marks this order complete');
+  }
   order.stage = to;
   order.history.push({ from, to, by: user.id, byName: user.name, note, at: new Date() } as never);
   order.status = computeStatus(order);
   await order.save();
   await audit(user, 'order.stage_advanced', 'Order', String(order._id), `${order.orderNo}: ${STAGE_LABELS[from]} → ${STAGE_LABELS[to]}`);
+  res.json(await respond(order, user));
+});
+
+router.post('/:id/cutting/complete', requirePermission('orders.stage.complete'), async (req, res) => {
+  const user = currentUser(req);
+  if (user.role !== 'owner' && user.role !== 'cutting') throw forbidden('Only the Cutting team or the owner can complete Cutting');
+  const order = await loadOrderForUser(assertObjectId(req.params.id, 'Order'), user);
+  if (order.cuttingStatus === 'completed') throw conflict('Cutting is already complete for this order');
+  order.cuttingStatus = 'completed';
+  order.cuttingCompletedAt = new Date();
+  order.cuttingCompletedByName = user.name;
+  await order.save();
+  await audit(user, 'order.cutting_completed', 'Order', String(order._id), `Completed Cutting for ${order.orderNo}`);
   res.json(await respond(order, user));
 });
 

@@ -22,7 +22,7 @@ const NAV: { label: string; items: NavItem[] }[] = [
     items: [
       { href: '/dashboard', label: 'Overview', icon: 'dashboard', permission: 'dashboard.view' },
       { href: '/orders', label: 'Orders', icon: 'orders', permission: 'orders.view' },
-      { href: '/production', label: 'Production board', icon: 'production', permission: 'orders.stage.complete' },
+      { href: '/production', label: 'Production board', icon: 'production', permission: 'orders.view' },
       { href: '/customers', label: 'Customers', icon: 'customers', permission: 'customers.view' },
       { href: '/inventory', label: 'Inventory', icon: 'inventory', permission: 'inventory.view' },
     ],

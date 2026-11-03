@@ -11,6 +11,7 @@ import type { Customer, Role, UserRow } from '@/lib/types';
 const ROLE_SCOPE: Record<Role, string> = {
   owner: 'Full access, dispatch, users and settings',
   design: 'Design queue, artwork versions',
+  cutting: 'Cutting queue',
   printing: 'Printing queue (approved jobs only)',
   stitching: 'Stitching queue',
   finishing: 'Finishing, QC and ready queue',

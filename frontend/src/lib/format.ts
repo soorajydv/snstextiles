@@ -32,6 +32,7 @@ export function dueLabel(d: string, stage: Stage): { text: string; tone: '' | 'a
 export const ROLE_LABELS: Record<Role, string> = {
   owner: 'Owner / Admin',
   design: 'Design team',
+  cutting: 'Cutting team',
   printing: 'Printing team',
   stitching: 'Stitching team',
   finishing: 'Finishing team',

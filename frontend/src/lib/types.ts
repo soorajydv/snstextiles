@@ -85,6 +85,8 @@ export interface Order {
   dueDate: string;
   players: Player[];
   playerListMode?: 'manual' | 'image';
+  cuttingStatus: 'pending' | 'completed';
+  cuttingCompletedAt: string | null;
   comments: string;
   files: StoredFile[];
   artworks: { version: number; file: StoredFile; note: string; uploadedByName: string; uploadedAt: string }[];

@@ -25,6 +25,7 @@ export const DEMO_PASSWORD = 'Password@123';
 const DEMO_USERS = [
   { name: 'S. Shrestha', email: 'owner@sstextiles.com', role: 'owner' },
   { name: 'M. Lama', email: 'design@sstextiles.com', role: 'design' },
+  { name: 'K. Rai', email: 'cutting@sstextiles.com', role: 'cutting' },
   { name: 'R. Singh', email: 'printing@sstextiles.com', role: 'printing' },
   { name: 'P. Gurung', email: 'stitching@sstextiles.com', role: 'stitching' },
   { name: 'B. Thapa', email: 'finishing@sstextiles.com', role: 'finishing' },
@@ -212,7 +213,7 @@ export async function seed() {
       from: i === 0 ? null : STAGES[i - 1],
       to,
       by: owner._id,
-      byName: i === 0 ? owner.name : [designer.name, users.printing.name, users.stitching.name, users.finishing.name, owner.name][i - 1],
+      byName: i === 0 ? owner.name : [designer.name, users.cutting.name, users.printing.name, users.stitching.name, users.finishing.name, owner.name][i - 1],
       note: i === 0 ? 'Order registered' : '',
       at: new Date(createdAt.getTime() + i * 2 * 86_400_000),
     }));

@@ -50,7 +50,8 @@ export default function OrderDetailPage() {
   const hasShorts = order.productConfig.toLowerCase().includes('shorts');
   const hasTrouser = order.productConfig.toLowerCase().includes('trouser');
   const canAdvance = order.stage !== 'ready' && order.stage !== 'delivered' && canCompleteStage(role, order.stage, meta.permissions);
-  const advanceBlocked = isDesign && !order.approved;
+  const cuttingBlocked = isDesign && order.cuttingStatus !== 'completed';
+  const advanceBlocked = (isDesign && !order.approved) || cuttingBlocked;
   const canUpload = isDesign && meta.permissions.includes('orders.artwork.upload');
   const canApprove = isDesign && order.currentVersion > 0 && !order.approved && meta.permissions.includes('orders.approve');
   const canFeedback = isDesign && order.currentVersion > 0 && meta.permissions.includes('orders.feedback');
@@ -118,9 +119,16 @@ export default function OrderDetailPage() {
             </div>
           ))}
         </div>
+        <div className="small muted" style={{ marginTop: 12 }}>
+          Cutting: <strong>{order.cuttingStatus === 'completed' ? 'Complete' : 'Pending'}</strong>
+        </div>
         {advanceBlocked && canAdvance && (
           <Notice tone="warn" style={{ marginTop: 14 }}>
-            {order.currentVersion === 0 ? 'Upload the first artwork version for the customer to review.' : `Waiting for customer approval of artwork v${order.currentVersion}. Printing cannot begin until it is approved.`}
+            {order.currentVersion === 0
+              ? 'Upload the first artwork version for the customer to review.'
+              : !order.approved
+                ? `Waiting for customer approval of artwork v${order.currentVersion}. Printing cannot begin until it is approved.`
+                : 'Waiting for the Cutting team to complete this order before printing can begin.'}
           </Notice>
         )}
       </section>

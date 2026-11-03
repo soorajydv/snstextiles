@@ -10,6 +10,7 @@ import { appPath } from '@/lib/paths';
 const DEMO = [
   ['Owner', 'owner@sstextiles.com'],
   ['Designer', 'design@sstextiles.com'],
+  ['Cutting', 'cutting@sstextiles.com'],
   ['Printing', 'printing@sstextiles.com'],
   ['Stitching', 'stitching@sstextiles.com'],
   ['Finishing', 'finishing@sstextiles.com'],

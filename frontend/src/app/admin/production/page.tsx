@@ -9,22 +9,25 @@ import { Badge, ConfirmModal, DueDate, Empty, Notice, PageHeader, Spinner, error
 import { STAGE_ORDER, STAGE_SHORT, canCompleteStage, initials } from '@/lib/format';
 import type { Order, Role, Stage } from '@/lib/types';
 
-const COLUMNS: Record<string, Stage[]> = {
+type BoardColumn = Stage | 'cutting';
+
+const COLUMNS: Record<string, BoardColumn[]> = {
   design: ['design'],
+  cutting: ['cutting'],
   printing: ['printing'],
   stitching: ['stitching'],
   finishing: ['finishing', 'ready'],
 };
-const ALL: Stage[] = ['design', 'printing', 'stitching', 'finishing', 'ready'];
+const ALL: BoardColumn[] = ['design', 'cutting', 'printing', 'stitching', 'finishing', 'ready'];
 
 export default function ProductionPage() {
   const { user, meta } = useAuth();
   const toast = useToast();
   const { data, error, reload, setData } = useApi<{ orders: Order[] }>('/orders?limit=200');
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [orderToAdvance, setOrderToAdvance] = useState<Order | null>(null);
+  const [orderToAdvance, setOrderToAdvance] = useState<{ order: Order; cutting: boolean } | null>(null);
   const columns = COLUMNS[user.role as Role] ?? ALL;
-  const label = (s: Stage) => meta.stages.find((x) => x.key === s)?.label ?? s;
+  const label = (s: BoardColumn) => s === 'cutting' ? 'Cutting' : meta.stages.find((x) => x.key === s)?.label ?? s;
 
   async function advance(o: Order) {
     const next = STAGE_ORDER[STAGE_ORDER.indexOf(o.stage) + 1];
@@ -42,9 +45,24 @@ export default function ProductionPage() {
     }
   }
 
+  async function completeCutting(o: Order) {
+    setBusyId(o.id);
+    try {
+      const res = await api<{ order: Order }>(`/orders/${o.id}/cutting/complete`, { method: 'POST', body: {} });
+      toast(`${o.orderNo} → Cutting complete`);
+      setData((d) => d && { orders: d.orders.map((x) => (x.id === o.id ? res.order : x)) });
+    } catch (err) {
+      toast(errorMessage(err), 'error');
+      reload();
+    } finally {
+      setOrderToAdvance(null);
+      setBusyId(null);
+    }
+  }
+
   return (
     <>
-      {orderToAdvance && <ConfirmModal title="Advance order" message={`Mark ${STAGE_SHORT[orderToAdvance.stage]} complete for ${orderToAdvance.orderNo} and move it to ${STAGE_SHORT[STAGE_ORDER[STAGE_ORDER.indexOf(orderToAdvance.stage) + 1]]}?`} confirmLabel="Advance order" danger={false} onClose={() => setOrderToAdvance(null)} onConfirm={() => advance(orderToAdvance)} />}
+      {orderToAdvance && <ConfirmModal title={orderToAdvance.cutting ? 'Complete Cutting' : 'Advance order'} message={orderToAdvance.cutting ? `Mark Cutting complete for ${orderToAdvance.order.orderNo}?` : `Mark ${STAGE_SHORT[orderToAdvance.order.stage]} complete for ${orderToAdvance.order.orderNo} and move it to ${STAGE_SHORT[STAGE_ORDER[STAGE_ORDER.indexOf(orderToAdvance.order.stage) + 1]]}?`} confirmLabel={orderToAdvance.cutting ? 'Complete Cutting' : 'Advance order'} danger={false} onClose={() => setOrderToAdvance(null)} onConfirm={() => orderToAdvance.cutting ? completeCutting(orderToAdvance.order) : advance(orderToAdvance.order)} />}
       <PageHeader
         eyebrow="SHOP FLOOR"
         title="Production board"
@@ -57,7 +75,7 @@ export default function ProductionPage() {
       ) : (
         <div className="production-grid" style={{ ['--cols' as string]: columns.length }}>
           {columns.map((stage) => {
-            const jobs = data.orders.filter((o) => o.stage === stage).sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+            const jobs = data.orders.filter((o) => stage === 'cutting' ? o.cuttingStatus === 'pending' : o.stage === stage).sort((a, b) => a.dueDate.localeCompare(b.dueDate));
             return (
               <div className="kanban-col" key={stage}>
                 <div className="kanban-head">
@@ -66,7 +84,8 @@ export default function ProductionPage() {
                 </div>
                 {jobs.map((o) => {
                   const gated = stage === 'design' && !o.approved;
-                  const canMove = stage !== 'ready' && canCompleteStage(user.role, stage, meta.permissions);
+                  const isCutting = stage === 'cutting';
+                  const canMove = isCutting ? (user.role === 'owner' || user.role === 'cutting') : stage !== 'ready' && canCompleteStage(user.role, stage, meta.permissions);
                   return (
                     <div className="job-card" key={o.id}>
                       <div className="job-top">
@@ -92,8 +111,8 @@ export default function ProductionPage() {
                         <Link className="btn small" href={`/orders/${o.id}`}>Open job →</Link>
                       </div>
                       {canMove && !gated && (
-                        <button className="btn small primary block" style={{ marginTop: 10 }} disabled={busyId === o.id} onClick={() => setOrderToAdvance(o)}>
-                          {busyId === o.id ? 'Moving…' : 'Mark stage complete →'}
+                        <button className="btn small primary block" style={{ marginTop: 10 }} disabled={busyId === o.id} onClick={() => setOrderToAdvance({ order: o, cutting: isCutting })}>
+                          {busyId === o.id ? 'Moving…' : isCutting ? 'Mark Cutting complete →' : 'Mark stage complete →'}
                         </button>
                       )}
                       {canMove && gated && (

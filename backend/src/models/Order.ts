@@ -1,5 +1,5 @@
 import { Schema, model, InferSchemaType, HydratedDocument } from 'mongoose';
-import { NECK_TYPES, PRODUCT_CONFIGS, SLEEVES, STAGES } from '../lib/constants';
+import { NECK_TYPES, SLEEVES, STAGES } from '../lib/constants';
 
 const fileSchema = new Schema(
   {
@@ -66,7 +66,7 @@ const orderSchema = new Schema(
     orderNo: { type: String, required: true, unique: true },
     customer: { type: Schema.Types.ObjectId, ref: 'Customer', required: true, index: true },
     teamName: { type: String, trim: true, required: true },
-    productConfig: { type: String, enum: PRODUCT_CONFIGS, required: true },
+    productConfig: { type: String, trim: true, required: true, maxlength: 120 },
     neckType: { type: String, enum: NECK_TYPES, required: true },
     shortsColor: { type: String, trim: true, default: '' },
     quantity: { type: Number, required: true, min: 1 },
@@ -76,6 +76,9 @@ const orderSchema = new Schema(
     amountPaid: { type: Number, default: 0, min: 0 },
     players: { type: [playerSchema], default: [] },
     playerListMode: { type: String, enum: ['manual', 'image'], default: 'manual' },
+    cuttingStatus: { type: String, enum: ['pending', 'completed'], default: 'pending', index: true },
+    cuttingCompletedAt: { type: Date, default: null },
+    cuttingCompletedByName: { type: String, default: '' },
     comments: { type: String, trim: true, default: '' },
     files: { type: [fileSchema], default: [] },
 

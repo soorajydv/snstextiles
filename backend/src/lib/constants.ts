@@ -1,4 +1,4 @@
-export const ROLES = ['owner', 'design', 'printing', 'stitching', 'finishing', 'accounts', 'customer'] as const;
+export const ROLES = ['owner', 'design', 'cutting', 'printing', 'stitching', 'finishing', 'accounts', 'customer'] as const;
 export type BuiltInRole = (typeof ROLES)[number];
 export type Role = string;
 export const STAFF_ROLES: BuiltInRole[] = ROLES.filter((r) => r !== 'customer');
@@ -24,6 +24,7 @@ const staffAttendance: Permission[] = ['attendance.view', 'attendance.checkin', 
 export const ROLE_PERMISSIONS: Record<BuiltInRole, Permission[]> = {
   owner: allPermissions,
   design: ['dashboard.view', 'orders.view', 'orders.artwork.upload', 'orders.feedback', 'orders.stage.complete', 'inventory.view', 'inventory.move', 'settings.view', ...staffAttendance, ...profilePermissions],
+  cutting: ['dashboard.view', 'orders.view', 'orders.stage.complete', 'inventory.view', 'inventory.move', 'settings.view', ...staffAttendance, ...profilePermissions],
   printing: ['dashboard.view', 'orders.view', 'orders.stage.complete', 'inventory.view', 'inventory.move', 'settings.view', ...staffAttendance, ...profilePermissions],
   stitching: ['dashboard.view', 'orders.view', 'orders.stage.complete', 'inventory.view', 'inventory.move', 'settings.view', ...staffAttendance, ...profilePermissions],
   finishing: ['dashboard.view', 'orders.view', 'orders.stage.complete', 'inventory.view', 'inventory.move', 'settings.view', ...staffAttendance, ...profilePermissions],

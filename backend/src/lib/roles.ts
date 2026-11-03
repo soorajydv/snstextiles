@@ -4,6 +4,7 @@ import { permissionsForRole, ROLE_PERMISSIONS, ROLES, type Permission } from './
 const BUILT_IN_NAMES: Record<(typeof ROLES)[number], string> = {
   owner: 'Owner / Admin',
   design: 'Design team',
+  cutting: 'Cutting team',
   printing: 'Printing team',
   stitching: 'Stitching team',
   finishing: 'Finishing team',

@@ -60,6 +60,7 @@ export function canCompleteStage(user: AuthUser, stage: Stage): boolean {
 export function orderScope(user: AuthUser): Record<string, unknown> {
   // ObjectId (not string) so the filter also works inside aggregation $match stages.
   if (user.role === 'customer') return { customer: new Types.ObjectId(user.customerId ?? '000000000000000000000000') };
+  if (user.role === 'cutting') return { stage: 'design', cuttingStatus: { $ne: 'completed' } };
   const stages = ROLE_STAGES[user.role];
   if (stages) return { stage: { $in: stages } };
   return {};
@@ -92,6 +93,7 @@ export function serializeOrder(order: SerializableOrder, user: AuthUser) {
 
   const withUrl = (f: Record<string, any>) => ({ ...f, url: fileUrl(id, f.storedName) });
 
+  const cuttingStatus = o.cuttingStatus ?? (o.stage === 'design' ? 'pending' : 'completed');
   const result: Record<string, any> = {
     id,
     orderNo: o.orderNo,
@@ -102,6 +104,8 @@ export function serializeOrder(order: SerializableOrder, user: AuthUser) {
     shortsColor: o.shortsColor,
     quantity: o.quantity,
     dueDate: o.dueDate,
+    cuttingStatus,
+    cuttingCompletedAt: o.cuttingCompletedAt,
     playerListMode: o.playerListMode ?? 'manual',
     players: o.players,
     comments: o.comments,
