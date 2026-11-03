@@ -39,6 +39,7 @@ const specSchema = z.object({
   quantity: z.coerce.number().int().min(1).max(5000),
   dueDate: z.coerce.date(),
   players: z.array(playerSchema).max(5000).optional().default([]),
+  playerListMode: z.enum(['manual', 'image']).optional().default('manual'),
   comments: z.string().trim().max(4000).optional().default(''),
 });
 
@@ -83,7 +84,7 @@ function parseMultipartData(req: Request) {
   return req.body;
 }
 
-function fileEntry(f: Express.Multer.File, kind: 'jersey' | 'reference' | 'artwork', user: AuthUser) {
+function fileEntry(f: Express.Multer.File, kind: 'jersey' | 'reference' | 'player-list' | 'artwork', user: AuthUser) {
   return { storedName: f.filename, originalName: f.originalname, mimeType: f.mimetype, size: f.size, kind, uploadedBy: user.id };
 }
 
@@ -153,16 +154,18 @@ router.get('/:id', requirePermission('orders.view'), async (req, res) => {
 router.post(
   '/',
   requirePermission('orders.create'),
-  upload.fields([{ name: 'jerseyImage', maxCount: 1 }, { name: 'files', maxCount: 10 }, { name: 'advanceProof', maxCount: 1 }]),
+  upload.fields([{ name: 'jerseyImage', maxCount: 1 }, { name: 'files', maxCount: 10 }, { name: 'advanceProof', maxCount: 1 }, { name: 'playerListImage', maxCount: 1 }]),
   async (req, res) => {
     const user = currentUser(req);
     const uploaded = req.files as Record<string, Express.Multer.File[]> | undefined;
-    const allUploads = [...(uploaded?.jerseyImage ?? []), ...(uploaded?.files ?? []), ...(uploaded?.advanceProof ?? [])];
+    const allUploads = [...(uploaded?.jerseyImage ?? []), ...(uploaded?.files ?? []), ...(uploaded?.advanceProof ?? []), ...(uploaded?.playerListImage ?? [])];
     try {
       const body = normaliseSpec(parse(createSchema, parseMultipartData(req)));
       if (startOfDay(body.dueDate) < startOfToday()) throw badRequest('dueDate: Delivery date cannot be in the past');
       if (body.advance > 0 && body.advanceMethod !== 'Cash' && !uploaded?.advanceProof?.[0]) throw badRequest('advanceProof: Upload proof of payment for non-cash advances');
       if (body.advance === 0 && uploaded?.advanceProof?.[0]) throw badRequest('advanceProof: Add an advance amount before uploading proof');
+      if (body.playerListMode === 'image' && !uploaded?.playerListImage?.[0]) throw badRequest('playerListImage: Upload a player list image');
+      if (body.playerListMode === 'manual' && uploaded?.playerListImage?.[0]) throw badRequest('playerListImage: Select image mode before uploading a player list image');
 
       // Resolve customer: customers can only order for themselves.
       let customerId: string;
@@ -188,6 +191,7 @@ router.post(
       const files = [
         ...(uploaded?.jerseyImage ?? []).map((f) => fileEntry(f, 'jersey', user)),
         ...(uploaded?.files ?? []).map((f) => fileEntry(f, 'reference', user)),
+        ...(uploaded?.playerListImage ?? []).map((f) => fileEntry(f, 'player-list', user)),
       ];
 
       const order = new Order({
@@ -199,6 +203,7 @@ router.post(
         shortsColor: body.shortsColor,
         quantity: body.quantity,
         dueDate: body.dueDate,
+        playerListMode: body.playerListMode,
         unitRate,
         totalAmount: unitRate * body.quantity,
         players: body.players,

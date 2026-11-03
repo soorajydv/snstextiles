@@ -269,6 +269,10 @@ tbody tr.clickable:hover td { background: light-dark(#f7f9f6, #1c2a22); }
 .checkbox-card { display: flex; align-items: flex-start; gap: 8px; min-height: 42px; padding: 10px 11px; border: 1px solid light-dark(#dce3da, #3a493f); border-radius: 9px; background: light-dark(#fbfcfa, #121b16); color: inherit; font-size: 11px; line-height: 1.35; cursor: pointer; }
 .checkbox-card:hover, .checkbox-card.selected { border-color: #6d9a7b; background: light-dark(#f1f7f0, #1e3024); }
 .checkbox-card input { width: 15px; height: 15px; margin: 1px 0 0; flex: 0 0 auto; accent-color: var(--site-primary); }
+.radio-line { display: flex; flex-wrap: wrap; gap: 9px; }
+.radio-option { display: inline-flex; align-items: center; gap: 8px; padding: 10px 12px; border: 1px solid light-dark(#dce3da, #3a493f); border-radius: 9px; background: light-dark(#fbfcfa, #121b16); color: inherit; font-size: 11px; line-height: 1.35; cursor: pointer; }
+.radio-option:hover, .radio-option.selected { border-color: #6d9a7b; background: light-dark(#f1f7f0, #1e3024); }
+.radio-option input { margin: 0; accent-color: var(--site-primary); }
 .permission-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 9px; margin-top: 8px; }
 .permission-groups { display: grid; gap: 18px; margin-top: 8px; }
 .permission-group { border-top: 1px solid light-dark(#e3e9e2, #2d3b32); padding-top: 14px; }

@@ -10,7 +10,7 @@ import { LocalFilePreview } from '@/components/LocalFilePreview';
 import { fmtMoney, toInputDate } from '@/lib/format';
 import type { Customer, Order, Player } from '@/lib/types';
 import { appPath } from '@/lib/paths';
-import { AVATAR_EXTENSIONS, DESIGN_EXTENSIONS, JERSEY_EXTENSIONS, MAX_UPLOAD_BYTES, validateUploadFile } from '@/lib/uploads';
+import { AVATAR_EXTENSIONS, DESIGN_EXTENSIONS, JERSEY_EXTENSIONS, MAX_UPLOAD_BYTES, PLAYER_LIST_EXTENSIONS, validateUploadFile } from '@/lib/uploads';
 
 const NEW_CUSTOMER = '__new__';
 const MAX_ROWS_RENDERED = 300;
@@ -44,6 +44,8 @@ export default function NewOrderPage() {
   const [jerseyImage, setJerseyImage] = useState<File | null>(null);
   const [advanceProof, setAdvanceProof] = useState<File | null>(null);
   const [files, setFiles] = useState<File[]>([]);
+  const [playerListMode, setPlayerListMode] = useState<'manual' | 'image'>('manual');
+  const [playerListImage, setPlayerListImage] = useState<File | null>(null);
   const [players, setPlayers] = useState<Player[]>(() => Array.from({ length: 18 }, () => emptyPlayer('Half sleeve')));
   const [defaultSleeve, setDefaultSleeve] = useState('Half sleeve');
   const [error, setError] = useState('');
@@ -117,6 +119,14 @@ export default function NewOrderPage() {
     if (message) toast(message, 'error');
   }
 
+  function selectPlayerListImage(file: File | undefined) {
+    if (!file) { setPlayerListImage(null); return; }
+    const message = validateUploadFile(file, { maxBytes: MAX_UPLOAD_BYTES, extensions: PLAYER_LIST_EXTENSIONS, label: 'Player list image' });
+    setUploadErrors((current) => ({ ...current, playerListImage: message }));
+    setPlayerListImage(message ? null : file);
+    if (message) toast(message, 'error');
+  }
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
@@ -135,6 +145,12 @@ export default function NewOrderPage() {
       setFieldErrors({ customerId: 'Select a customer' });
       return;
     }
+    if (playerListMode === 'image' && !playerListImage) {
+      const message = 'Upload a player list image when using image mode.';
+      setUploadErrors((current) => ({ ...current, playerListImage: message }));
+      toast(message, 'error');
+      return;
+    }
     setBusy(true);
     const filledPlayers = rows
       .filter((p) => p.name || p.number || p.jerseySize)
@@ -151,13 +167,15 @@ export default function NewOrderPage() {
       unitRate: isCustomer ? 0 : Number(unitRate) || 0,
       advance: isCustomer ? 0 : Number(advance) || 0,
       advanceMethod,
-      players: filledPlayers,
+      playerListMode,
+      players: playerListMode === 'manual' ? filledPlayers : [],
       comments,
     };
     const form = new FormData();
     form.append('data', JSON.stringify(data));
     if (jerseyImage) form.append('jerseyImage', jerseyImage);
     if (advanceProof) form.append('advanceProof', advanceProof);
+    if (playerListImage) form.append('playerListImage', playerListImage);
     files.forEach((f) => form.append('files', f));
     try {
       const { order } = await api<{ order: Order }>('/orders', { method: 'POST', form });
@@ -264,6 +282,29 @@ export default function NewOrderPage() {
         </section>
 
         <section className="card">
+          <h2 style={{ marginBottom: 8 }}>Player list method</h2>
+          <div className="card-sub" style={{ marginBottom: 14 }}>Choose one method: enter each player in the table or upload a clear picture of the list.</div>
+          <div className="radio-line" role="radiogroup" aria-label="Player list method">
+            <label className={`radio-option ${playerListMode === 'manual' ? 'selected' : ''}`}>
+              <input type="radio" name="playerListMode" value="manual" checked={playerListMode === 'manual'} onChange={() => { setPlayerListMode('manual'); setUploadErrors((current) => ({ ...current, playerListImage: '' })); }} />
+              Fill player details here
+            </label>
+            <label className={`radio-option ${playerListMode === 'image' ? 'selected' : ''}`}>
+              <input type="radio" name="playerListMode" value="image" checked={playerListMode === 'image'} onChange={() => setPlayerListMode('image')} />
+              Attach a picture of the list
+            </label>
+          </div>
+          {playerListMode === 'image' && (
+            <div style={{ marginTop: 14, maxWidth: 520 }}>
+              <Field label="Player list picture *" hint="Clear, readable image showing player names, jersey numbers and sizes." error={uploadErrors.playerListImage}>
+                <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" required onChange={(e) => { selectPlayerListImage(e.target.files?.[0]); e.currentTarget.value = ''; }} />
+                {playerListImage && <LocalFilePreview file={playerListImage} />}
+              </Field>
+            </div>
+          )}
+        </section>
+
+        <section className="card">
           <h2 style={{ marginBottom: 16 }}>Design references</h2>
           <div className="form-grid">
             <Field label="Logos / artwork files" hint={`Up to 10 files · ${MAX_UPLOAD_BYTES / (1024 * 1024)} MB each`} error={uploadErrors.files}>
@@ -288,6 +329,7 @@ export default function NewOrderPage() {
               {meta.sleeves.map((s) => <option key={s} value={s}>All: {s}</option>)}
             </select>
           </div>
+          {playerListMode === 'manual' && <>
           {qty > MAX_ROWS_RENDERED && <Notice tone="warn" style={{ marginBottom: 10 }}>Showing the first {MAX_ROWS_RENDERED} rows. Larger rosters can be shared as a file.</Notice>}
           <div className="table-wrap">
             <table className="player-table">
@@ -312,7 +354,7 @@ export default function NewOrderPage() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </div></>}
         </section>
       </div>
 

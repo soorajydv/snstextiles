@@ -222,7 +222,7 @@ export default function OrderDetailPage() {
             <div className="card-head" style={{ padding: '18px 18px 0' }}>
               <div>
                 <h2>Player roster</h2>
-                <div className="card-sub">{order.players.length} of {order.quantity} rows filled</div>
+                <div className="card-sub">{order.playerListMode === 'image' ? 'Player list attached as an image' : `${order.players.length} of ${order.quantity} rows filled`}</div>
               </div>
             </div>
             {order.players.length ? (
@@ -392,7 +392,7 @@ function FileList({ files }: { files: StoredFile[] }) {
             ? <img className="file-thumb" src={f.url} alt={f.originalName} />
             : <span aria-hidden>{f.kind === 'jersey' ? '👕' : '📎'}</span>}
           <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.originalName}</span>
-          <span className="muted small">{f.kind === 'jersey' ? 'Jersey image · ' : ''}{fileSize(f.size)}</span>
+          <span className="muted small">{f.kind === 'jersey' ? 'Jersey image · ' : f.kind === 'player-list' ? 'Player list · ' : ''}{fileSize(f.size)}</span>
         </a>
       ))}
     </div>

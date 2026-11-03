@@ -24,7 +24,7 @@ export const upload = multer({
   limits: { fileSize: env.maxUploadBytes, files: 12 },
   fileFilter: (_req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
-    if (['advanceProof', 'proof'].includes(file.fieldname) && !AVATAR_MIME.includes(file.mimetype)) {
+    if (['advanceProof', 'proof', 'playerListImage'].includes(file.fieldname) && !AVATAR_MIME.includes(file.mimetype)) {
       cb(badRequest(`${file.fieldname}: Only PNG, JPG, JPEG or WEBP images are allowed`));
       return;
     }

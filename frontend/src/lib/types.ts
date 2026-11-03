@@ -59,7 +59,7 @@ export interface StoredFile {
   originalName: string;
   mimeType: string;
   size: number;
-  kind: 'jersey' | 'reference' | 'artwork';
+  kind: 'jersey' | 'reference' | 'player-list' | 'artwork';
   uploadedAt: string;
   url: string;
 }
@@ -84,6 +84,7 @@ export interface Order {
   quantity: number;
   dueDate: string;
   players: Player[];
+  playerListMode?: 'manual' | 'image';
   comments: string;
   files: StoredFile[];
   artworks: { version: number; file: StoredFile; note: string; uploadedByName: string; uploadedAt: string }[];

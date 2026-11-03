@@ -4,6 +4,7 @@ export const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
 export const DESIGN_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.webp', '.gif', '.pdf', '.ai', '.eps', '.svg', '.psd', '.cdr'];
 export const JERSEY_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.webp', '.gif', '.pdf'];
 export const AVATAR_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.webp', '.gif'];
+export const PLAYER_LIST_EXTENSIONS = AVATAR_EXTENSIONS;
 
 export function formatBytes(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(bytes % (1024 * 1024) === 0 ? 0 : 1)} MB`;

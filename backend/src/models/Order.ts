@@ -7,7 +7,7 @@ const fileSchema = new Schema(
     originalName: { type: String, required: true },
     mimeType: { type: String, required: true },
     size: { type: Number, required: true },
-    kind: { type: String, enum: ['jersey', 'reference', 'artwork'], required: true },
+    kind: { type: String, enum: ['jersey', 'reference', 'player-list', 'artwork'], required: true },
     uploadedBy: { type: Schema.Types.ObjectId, ref: 'User' },
     uploadedAt: { type: Date, default: Date.now },
   },
@@ -75,6 +75,7 @@ const orderSchema = new Schema(
     totalAmount: { type: Number, default: 0, min: 0 },
     amountPaid: { type: Number, default: 0, min: 0 },
     players: { type: [playerSchema], default: [] },
+    playerListMode: { type: String, enum: ['manual', 'image'], default: 'manual' },
     comments: { type: String, trim: true, default: '' },
     files: { type: [fileSchema], default: [] },
 

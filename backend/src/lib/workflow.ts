@@ -102,6 +102,7 @@ export function serializeOrder(order: SerializableOrder, user: AuthUser) {
     shortsColor: o.shortsColor,
     quantity: o.quantity,
     dueDate: o.dueDate,
+    playerListMode: o.playerListMode ?? 'manual',
     players: o.players,
     comments: o.comments,
     files: (o.files ?? []).map(withUrl),
