@@ -5,7 +5,7 @@ import { api } from '@/lib/api';
 import { useAuth } from '@/components/AuthProvider';
 import { useToast } from '@/components/Toast';
 import { LocalFilePreview } from '@/components/LocalFilePreview';
-import { ConfirmModal, Field, Notice, PageHeader, errorMessage } from '@/components/ui';
+import { ConfirmModal, Field, Notice, PageHeader, PasswordField, errorMessage } from '@/components/ui';
 import { roleLabel } from '@/lib/format';
 import { AVATAR_EXTENSIONS, MAX_AVATAR_BYTES, validateUploadFile } from '@/lib/uploads';
 
@@ -127,9 +127,9 @@ function ChangePassword() {
     <h2>Change password</h2>
     {error && <Notice tone="error" style={{ margin: '12px 0' }}>{error}</Notice>}
     <form onSubmit={submit} className="form-grid" style={{ marginTop: 14 }}>
-      <Field label="Current password" full><input type="password" required autoComplete="current-password" value={form.currentPassword} onChange={(e) => setForm({ ...form, currentPassword: e.target.value })} /></Field>
-      <Field label="New password" hint="At least 8 characters"><input type="password" required minLength={8} autoComplete="new-password" value={form.newPassword} onChange={(e) => setForm({ ...form, newPassword: e.target.value })} /></Field>
-      <Field label="Confirm new password"><input type="password" required autoComplete="new-password" value={form.confirm} onChange={(e) => setForm({ ...form, confirm: e.target.value })} /></Field>
+      <Field label="Current password" full><PasswordField required autoComplete="current-password" value={form.currentPassword} onChange={(e) => setForm({ ...form, currentPassword: e.target.value })} /></Field>
+      <Field label="New password" hint="At least 8 characters"><PasswordField required minLength={8} autoComplete="new-password" value={form.newPassword} onChange={(e) => setForm({ ...form, newPassword: e.target.value })} /></Field>
+      <Field label="Confirm new password"><PasswordField required autoComplete="new-password" value={form.confirm} onChange={(e) => setForm({ ...form, confirm: e.target.value })} /></Field>
       <div className="field full"><button className="btn primary" disabled={busy}>{busy ? 'Saving…' : 'Change password'}</button></div>
     </form>
   </section>;
@@ -162,7 +162,7 @@ function DeleteAccount({ logout }: { logout: () => Promise<void> }) {
     <div className="card-sub" style={{ marginBottom: 14 }}>This permanently removes your account and cannot be undone.</div>
     {error && <Notice tone="error" style={{ marginBottom: 14 }}>{error}</Notice>}
     <form onSubmit={submit}>
-      <Field label="Current password" hint="Required to confirm account deletion"><input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} /></Field>
+      <Field label="Current password" hint="Required to confirm account deletion"><PasswordField required value={password} onChange={(e) => setPassword(e.target.value)} /></Field>
       <button className="btn danger" style={{ marginTop: 16 }} disabled={busy}>{busy ? 'Deleting…' : 'Delete my account'}</button>
     </form>
   </section>

@@ -32,7 +32,7 @@ function InvoiceView() {
       <div className="print-page">
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 20, marginBottom: 30 }}>
           <div>
-            {settings.logoUrl && <img src={appPath(settings.logoUrl)} alt="Business logo" style={{ width: 54, height: 54, objectFit: 'cover', borderRadius: 10, marginBottom: 8 }} />}
+            {settings.logoUrl && <img src={appPath(settings.logoUrl)} alt="Business logo" style={{ width: 80, height: 54, objectFit: 'contain', marginBottom: 8 }} />}
             <div style={{ fontSize: 20, fontWeight: 800 }}>{settings.businessName}</div>
             <div style={{ fontSize: 12, lineHeight: 1.7, color: '#56645b' }}>
               {settings.address && <>{settings.address}<br /></>}

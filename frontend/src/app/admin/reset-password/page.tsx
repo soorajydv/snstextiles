@@ -4,7 +4,7 @@ import { Suspense, useState } from 'react';
 import { AppLink as Link } from '@/components/AppLink';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
-import { Field, Notice, errorMessage } from '@/components/ui';
+import { Field, Notice, PasswordField, errorMessage } from '@/components/ui';
 import { appPath } from '@/lib/paths';
 
 function ResetPasswordForm() {
@@ -37,8 +37,8 @@ function ResetPasswordForm() {
     <h1>Set a new password</h1>
     <div className="subtitle">Choose a new password with at least 8 characters. This link expires after 30 minutes and can only be used once.</div>
     {error && <Notice tone="error">{error}</Notice>}
-    <Field label="New password"><input type="password" autoComplete="new-password" minLength={8} required value={password} onChange={(e) => setPassword(e.target.value)} /></Field>
-    <Field label="Confirm password"><input type="password" autoComplete="new-password" minLength={8} required value={confirm} onChange={(e) => setConfirm(e.target.value)} /></Field>
+    <Field label="New password"><PasswordField autoComplete="new-password" minLength={8} required value={password} onChange={(e) => setPassword(e.target.value)} /></Field>
+    <Field label="Confirm password"><PasswordField autoComplete="new-password" minLength={8} required value={confirm} onChange={(e) => setConfirm(e.target.value)} /></Field>
     <button className="btn primary block" disabled={busy}>{busy ? 'Updating password…' : 'Update password'}</button>
     <div style={{ textAlign: 'center', marginTop: 16 }}><Link className="link-btn" href="/login">Back to sign in</Link></div>
   </form>;

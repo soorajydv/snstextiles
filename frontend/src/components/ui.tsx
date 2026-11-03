@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState, type InputHTMLAttributes, type ReactNode } from 'react';
 import { AppLink as Link } from './AppLink';
 import type { Order } from '@/lib/types';
 import { daysUntil, dueLabel, fmtMoney } from '@/lib/format';
@@ -111,6 +111,18 @@ export function Field({ label, children, hint, error, full }: { label: string; c
       <label>{visibleLabel}{required && <span className="required-mark" aria-hidden="true"> *</span>}</label>
       {children}
       {error ? <span className="error-text">{error}</span> : hint ? <small>{hint}</small> : null}
+    </div>
+  );
+}
+
+export function PasswordField(props: InputHTMLAttributes<HTMLInputElement>) {
+  const [visible, setVisible] = useState(false);
+  return (
+    <div className="password-field">
+      <input {...props} type={visible ? 'text' : 'password'} />
+      <button type="button" className="password-toggle" onClick={() => setVisible((current) => !current)} aria-label={visible ? 'Hide password' : 'Show password'} title={visible ? 'Hide password' : 'Show password'}>
+        <Icon name={visible ? 'eyeOff' : 'eye'} size={16} />
+      </button>
     </div>
   );
 }

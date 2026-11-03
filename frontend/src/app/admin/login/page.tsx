@@ -3,7 +3,7 @@
 import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
-import { Field, Notice, errorMessage } from '@/components/ui';
+import { Field, Notice, PasswordField, errorMessage } from '@/components/ui';
 import { useTheme } from '@/components/ThemeProvider';
 import { appPath } from '@/lib/paths';
 
@@ -56,7 +56,7 @@ function LoginForm() {
         <input type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} />
       </Field>
       <Field label="Password">
-        <input type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+        <PasswordField autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
       </Field>
       <button className="btn primary block" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>
       <div style={{ textAlign: 'right', marginTop: 10 }}><a className="link-btn" href={appPath('/forgot-password')}>Forgot password?</a></div>

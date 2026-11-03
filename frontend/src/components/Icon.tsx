@@ -2,7 +2,7 @@ import type { SVGProps } from 'react';
 
 export type IconName =
   | 'activity' | 'alert' | 'arrowUp' | 'attendance' | 'bell' | 'box' | 'chart' | 'check' | 'chevronLeft' | 'chevronRight' | 'close' | 'customers' | 'dashboard'
-  | 'delivery' | 'download' | 'install' | 'inventory' | 'menu' | 'moon' | 'orders' | 'production' | 'receipt'
+  | 'delivery' | 'download' | 'eye' | 'eyeOff' | 'install' | 'inventory' | 'menu' | 'moon' | 'orders' | 'production' | 'receipt'
   | 'profile' | 'roles' | 'settings' | 'sidebar' | 'sun' | 'users' | 'logout';
 
 const PATHS: Record<IconName, React.ReactNode> = {
@@ -21,6 +21,8 @@ const PATHS: Record<IconName, React.ReactNode> = {
   dashboard: <><rect x="4" y="4" width="6" height="6" rx="1" /><rect x="14" y="4" width="6" height="6" rx="1" /><rect x="4" y="14" width="6" height="6" rx="1" /><rect x="14" y="14" width="6" height="6" rx="1" /></>,
   delivery: <><path d="M3 6h11v11H3zM14 10h4l3 3v4h-7z" /><circle cx="7" cy="19" r="2" /><circle cx="17" cy="19" r="2" /></>,
   download: <><path d="M12 3v12M7 10l5 5 5-5M4 21h16" /></>,
+  eye: <><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z" /><circle cx="12" cy="12" r="2.5" /></>,
+  eyeOff: <><path d="m3 3 18 18M10.6 6.2A10.7 10.7 0 0 1 12 6c6.5 0 10 6 10 6a18.5 18.5 0 0 1-3.2 3.7M6.2 6.2C3.5 8 2 12 2 12s3.5 6 10 6a10.7 10.7 0 0 0 3-.4" /><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" /></>,
   install: <><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><path d="M17.5 13v7M14.5 17l3 3 3-3M13 22h8" /></>,
   inventory: <><path d="m4 7 8-4 8 4-8 4-8-4ZM4 12l8 4 8-4M4 17l8 4 8-4" /></>,
   logout: <><path d="M10 17l5-5-5-5M15 12H3" /><path d="M21 3v18" /></>,
