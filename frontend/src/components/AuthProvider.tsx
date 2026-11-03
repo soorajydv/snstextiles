@@ -36,7 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const [meta, { settings }] = await Promise.all([api<Meta>('/meta'), api<{ settings: Settings }>('/settings')]);
         if (!cancelled) setState({ user, meta, settings });
       } catch {
-        if (!cancelled) router.replace(`/login?next=${encodeURIComponent(pathname)}`);
+        if (!cancelled) router.replace(`/portal/login?next=${encodeURIComponent(pathname)}`);
       }
     })();
     return () => {
