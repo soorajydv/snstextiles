@@ -34,7 +34,7 @@ export function middleware(request: NextRequest) {
 
   if (adminSegments.has(segment)) {
     const url = request.nextUrl.clone();
-    url.pathname = `/admin${pathname}`;
+    url.pathname = `/portal${pathname}`;
     return NextResponse.redirect(url);
   }
 
