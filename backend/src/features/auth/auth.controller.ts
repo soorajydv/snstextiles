@@ -17,8 +17,8 @@ const cookieOptions = {
 };
 
 export async function loginController(req: Request, res: Response) {
-  const { email, password } = parse(loginSchema, req.body);
-  const result = await login(email, password);
+  const { identifier, password } = parse(loginSchema, req.body);
+  const result = await login(identifier, password);
   res.cookie(AUTH_COOKIE, result.token, cookieOptions);
   res.json(result);
 }

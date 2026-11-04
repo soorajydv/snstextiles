@@ -9,8 +9,11 @@ import type { AuthUser } from '../../middleware/auth';
 import { permissionsForUserRole } from '../../lib/roles';
 import { removeStoredFile } from '../../lib/uploads';
 
-export async function login(email: string, password: string) {
-  const user = await User.findOne({ email }).select('+passwordHash');
+export async function login(identifier: string, password: string) {
+  const normalizedIdentifier = identifier.trim().toLowerCase();
+  const user = await User.findOne({
+    $or: [{ username: normalizedIdentifier }, { email: normalizedIdentifier }, { phone: identifier.trim() }],
+  }).select('+passwordHash');
   if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
     throw new HttpError(401, 'Incorrect email or password');
   }
@@ -20,7 +23,7 @@ export async function login(email: string, password: string) {
   await user.save();
   const token = signToken(String(user._id));
   await audit(
-    { id: String(user._id), name: user.name, email: user.email, role: user.role as never, customerId: null, permissions: await permissionsForUserRole(user.role) },
+    { id: String(user._id), name: user.name, username: user.username ?? '', email: user.email, role: user.role as never, customerId: null, permissions: await permissionsForUserRole(user.role) },
     'auth.login', 'User', String(user._id), `${user.name} signed in`,
   );
 
@@ -58,6 +61,7 @@ export async function getProfile(userId: string) {
   return {
     id: String(user._id),
     name: user.name,
+    username: user.username ?? '',
     email: user.email,
     role: user.role,
     phone: user.phone,

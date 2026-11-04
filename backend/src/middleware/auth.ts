@@ -9,6 +9,7 @@ import { permissionsForUserRole } from '../lib/roles';
 export interface AuthUser {
   id: string;
   name: string;
+  username: string;
   email: string;
   role: Role;
   permissions: Permission[];
@@ -53,6 +54,7 @@ export async function requireAuth(req: Request, _res: Response, next: NextFuncti
   req.user = {
     id: String(user._id),
     name: user.name,
+    username: user.username ?? '',
     email: user.email,
     role: user.role as Role,
     permissions: await permissionsForUserRole(user.role),

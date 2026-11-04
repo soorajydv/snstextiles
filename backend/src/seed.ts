@@ -23,13 +23,13 @@ import { ensureSystemRoles } from './lib/roles';
 export const DEMO_PASSWORD = 'Password@123';
 
 const DEMO_USERS = [
-  { name: 'S. Shrestha', email: 'owner@sstextiles.com', role: 'owner' },
-  { name: 'M. Lama', email: 'design@sstextiles.com', role: 'design' },
-  { name: 'K. Rai', email: 'cutting@sstextiles.com', role: 'cutting' },
-  { name: 'R. Singh', email: 'printing@sstextiles.com', role: 'printing' },
-  { name: 'P. Gurung', email: 'stitching@sstextiles.com', role: 'stitching' },
-  { name: 'B. Thapa', email: 'finishing@sstextiles.com', role: 'finishing' },
-  { name: 'Accounts Desk', email: 'accounts@sstextiles.com', role: 'accounts' },
+  { name: 'S. Shrestha', username: 's.shrestha', email: 'owner@sstextiles.com', role: 'owner' },
+  { name: 'M. Lama', username: 'm.lama', email: 'design@sstextiles.com', role: 'design' },
+  { name: 'K. Rai', username: 'k.rai', email: 'cutting@sstextiles.com', role: 'cutting' },
+  { name: 'R. Singh', username: 'r.singh', email: 'printing@sstextiles.com', role: 'printing' },
+  { name: 'P. Gurung', username: 'p.gurung', email: 'stitching@sstextiles.com', role: 'stitching' },
+  { name: 'B. Thapa', username: 'b.thapa', email: 'finishing@sstextiles.com', role: 'finishing' },
+  { name: 'Accounts Desk', username: 'accounts.desk', email: 'accounts@sstextiles.com', role: 'accounts' },
 ] as const;
 
 type SeedOrder = {
@@ -191,6 +191,7 @@ export async function seed() {
 
   await User.create({
     name: 'Himalayan Tigers FC',
+    username: 'himalayan.tigers.fc',
     email: 'tigers@himalayantigers.com',
     role: 'customer',
     customer: customers.get('Himalayan Tigers FC'),

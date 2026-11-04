@@ -27,6 +27,7 @@ export async function sendPasswordResetEmail(to: string, name: string, token: st
 
 export async function sendUserWelcomeEmail(details: {
   name: string;
+  username: string;
   email: string;
   phone: string;
   role: string;
@@ -35,6 +36,7 @@ export async function sendUserWelcomeEmail(details: {
 }) {
   const rows = [
     ['Name', details.name],
+    ['Username', details.username],
     ['Email', details.email],
     ['Phone', details.phone || 'Not provided'],
     ['Role', details.role],

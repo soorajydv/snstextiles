@@ -19,6 +19,10 @@ const ROLE_SCOPE: Record<Role, string> = {
   customer: 'Own orders, approvals and invoices',
 };
 
+function usernameFromName(name: string) {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, '.').replace(/^\.+|\.+$/g, '').slice(0, 40);
+}
+
 export default function UsersPage() {
   const { user: me, meta } = useAuth();
   const toast = useToast();
@@ -60,7 +64,7 @@ export default function UsersPage() {
       />
       {error && <Notice tone="error">{error}</Notice>}
       <div className="toolbar">
-        <div className="search"><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name, email or phone…" aria-label="Search users" /></div>
+        <div className="search"><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name, username, email or phone…" aria-label="Search users" /></div>
         <select value={role} onChange={(e) => setRole(e.target.value)} aria-label="Filter users by role">
           <option value="">All roles</option>
           {meta.roles.map((item) => <option key={item.key} value={item.key}>{item.name}</option>)}
@@ -74,7 +78,7 @@ export default function UsersPage() {
               <tbody>
                 {data.users.map((u) => (
                   <tr key={u.id} style={{ opacity: u.active ? 1 : 0.55 }}>
-                    <td><strong>{u.name}</strong><div className="muted small" style={{ marginTop: 3 }}>{u.email}</div></td>
+                    <td><strong>{u.name}</strong><div className="muted small" style={{ marginTop: 3 }}>@{u.username} · {u.email}</div></td>
                     <td>{roleLabel(u.role, meta.roles)}{u.customer && <div className="muted small" style={{ marginTop: 3 }}>{u.customer.name}</div>}</td>
                     <td className="wrap muted">{ROLE_SCOPE[u.role] ?? 'Custom role permissions'}</td>
                     <td>{u.lastLoginAt ? fmtDateTime(u.lastLoginAt) : <span className="muted">Never</span>}</td>
@@ -130,6 +134,7 @@ function UserModal({ user, onClose, onSaved }: { user: UserRow | null; onClose: 
   const customers = useApi<{ customers: Customer[] }>('/customers');
   const [form, setForm] = useState({
     name: user?.name ?? '',
+    username: user?.username ?? '',
     email: user?.email ?? '',
     phone: user?.phone ?? '',
     role: (user?.role ?? 'design') as Role,
@@ -139,6 +144,7 @@ function UserModal({ user, onClose, onSaved }: { user: UserRow | null; onClose: 
   });
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [usernameEdited, setUsernameEdited] = useState(!!user);
   const self = user?.id === me.id;
 
   async function submit(e: React.FormEvent) {
@@ -150,7 +156,7 @@ function UserModal({ user, onClose, onSaved }: { user: UserRow | null; onClose: 
       if (user) {
         await api(`/users/${user.id}`, { method: 'PATCH', body: { name: form.name, phone: form.phone, role: form.role, customer, active: form.active } });
       } else {
-        const result = await api<{ emailSent: boolean }>('/users', { method: 'POST', body: { name: form.name, email: form.email, phone: form.phone, role: form.role, customer, password: form.password } });
+        const result = await api<{ emailSent: boolean }>('/users', { method: 'POST', body: { name: form.name, username: form.username, email: form.email, phone: form.phone, role: form.role, customer, password: form.password } });
         toast(result.emailSent ? `Account created and login details emailed to ${form.email}` : 'Account created, but the welcome email could not be sent', result.emailSent ? 'ok' : 'error');
         onSaved();
         return;
@@ -168,7 +174,8 @@ function UserModal({ user, onClose, onSaved }: { user: UserRow | null; onClose: 
       <form onSubmit={submit}>
         {error && <Notice tone="error" style={{ marginBottom: 14 }}>{error}</Notice>}
         <div className="form-grid">
-          <Field label="Full name *"><input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></Field>
+          <Field label="Full name *"><input required value={form.name} onChange={(e) => { const name = e.target.value; setForm({ ...form, name, username: !usernameEdited ? usernameFromName(name) : form.username }); }} /></Field>
+          <Field label="Username *" hint="Defaults from the full name; you can adjust it if needed"><input required minLength={3} maxLength={40} pattern="[a-zA-Z0-9._-]+" disabled={!!user} value={form.username} onChange={(e) => { setUsernameEdited(true); setForm({ ...form, username: e.target.value.toLowerCase() }); }} /></Field>
           <Field label="Email (sign-in) *"><input type="email" required disabled={!!user} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></Field>
           <Field label="Role *" hint={ROLE_SCOPE[form.role] ?? 'Custom role permissions'}>
             <select value={form.role} disabled={self} onChange={(e) => setForm({ ...form, role: e.target.value as Role })}>

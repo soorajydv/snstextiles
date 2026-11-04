@@ -17,6 +17,7 @@ export type Stage = 'design' | 'printing' | 'stitching' | 'finishing' | 'ready' 
 export interface Me {
   id: string;
   name: string;
+  username: string;
   email: string;
   role: Role;
   phone: string;
@@ -173,6 +174,7 @@ export interface StockMovement {
 export interface UserRow {
   id: string;
   name: string;
+  username: string;
   email: string;
   role: Role;
   phone: string;

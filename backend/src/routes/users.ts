@@ -5,7 +5,7 @@ import { User } from '../models/user.model';
 import { Customer } from '../models/Customer';
 import { currentUser, requirePermission } from '../middleware/auth';
 import { roleExists } from '../lib/roles';
-import { assertObjectId, badRequest, escapeRegex, notFound, pagination, parse } from '../lib/http';
+import { assertObjectId, badRequest, conflict, escapeRegex, notFound, pagination, parse } from '../lib/http';
 import { audit } from '../lib/audit';
 import { sendUserWelcomeEmail } from '../lib/mail';
 
@@ -15,6 +15,7 @@ router.use(requirePermission('users.manage'));
 const toDto = (u: Record<string, any>) => ({
   id: String(u._id),
   name: u.name,
+  username: u.username ?? '',
   email: u.email,
   role: u.role,
   phone: u.phone ?? '',
@@ -41,7 +42,7 @@ router.get('/', async (req, res) => {
   if (query.role) filter.role = query.role;
   if (query.search?.trim()) {
     const rx = { $regex: escapeRegex(query.search.trim()), $options: 'i' };
-    filter.$or = [{ name: rx }, { email: rx }, { phone: rx }];
+    filter.$or = [{ name: rx }, { username: rx }, { email: rx }, { phone: rx }];
   }
   const [users, total] = await Promise.all([
     User.find(filter).populate('customer', 'name').sort({ role: 1, name: 1 }).skip(skip).limit(limit).lean(),
@@ -52,6 +53,7 @@ router.get('/', async (req, res) => {
 
 const createSchema = z.object({
   name: z.string().trim().min(2),
+  username: z.string().trim().toLowerCase().min(3, 'Username must be at least 3 characters').max(40).regex(/^[a-z0-9._-]+$/, 'Use only letters, numbers, dots, underscores or hyphens'),
   email: z.email().trim().toLowerCase(),
   password: z.string().min(8, 'Use at least 8 characters'),
   role: z.string().trim().toLowerCase().min(2).max(40),
@@ -63,9 +65,11 @@ router.post('/', async (req, res) => {
   const me = currentUser(req);
   const body = parse(createSchema, req.body);
   if (!(await roleExists(body.role))) throw badRequest('role: Role not found');
+  if (await User.exists({ username: body.username })) throw conflict('username: Username is already taken');
   const customer = await checkCustomerLink(body.role, body.customer);
   const user = await User.create({
     name: body.name,
+    username: body.username,
     email: body.email,
     phone: body.phone,
     role: body.role,
@@ -78,6 +82,7 @@ router.post('/', async (req, res) => {
   try {
     await sendUserWelcomeEmail({
       name: body.name,
+      username: body.username,
       email: body.email,
       phone: body.phone,
       role: body.role,

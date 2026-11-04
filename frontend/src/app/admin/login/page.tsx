@@ -21,7 +21,7 @@ const DEMO = [
 function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -32,7 +32,7 @@ function LoginForm() {
     setBusy(true);
     setError('');
     try {
-      await api('/auth/login', { method: 'POST', body: { email, password } });
+      await api('/auth/login', { method: 'POST', body: { identifier, password } });
       const next = params.get('next');
       router.replace(next && next.startsWith('/') && !next.startsWith('//') ? next : appPath('/dashboard'));
     } catch (err) {
@@ -53,8 +53,8 @@ function LoginForm() {
       </div>
       {params.get('reset') === 'success' && <Notice>Password updated successfully. Sign in with your new password.</Notice>}
       {error && <Notice tone="error">{error}</Notice>}
-      <Field label="Email">
-        <input type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} />
+      <Field label="Username, phone or email">
+        <input autoComplete="username" required value={identifier} onChange={(e) => setIdentifier(e.target.value)} />
       </Field>
       <Field label="Password">
         <PasswordField autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
@@ -66,7 +66,7 @@ function LoginForm() {
           <div className="eyebrow" style={{ marginBottom: 8 }}>Demo accounts · password Password@123</div>
           <div className="demo-accounts">
             {DEMO.map(([label, mail]) => (
-              <button key={mail} type="button" className="btn small" onClick={() => { setEmail(mail); setPassword('Password@123'); }}>
+              <button key={mail} type="button" className="btn small" onClick={() => { setIdentifier(mail); setPassword('Password@123'); }}>
                 {label}
               </button>
             ))}
