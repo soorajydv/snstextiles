@@ -21,6 +21,7 @@ export const changePasswordSchema = z.object({
 
 export const profileSchema = z.object({
   name: z.string().trim().min(2, 'Name must be at least 2 characters').max(120),
+  username: z.string().trim().toLowerCase().min(3, 'Username must be at least 3 characters').max(40).regex(/^[a-z0-9._-]+$/, 'Use only letters, numbers, dots, underscores or hyphens'),
   phone: z.string().trim().max(30).optional().default(''),
 });
 

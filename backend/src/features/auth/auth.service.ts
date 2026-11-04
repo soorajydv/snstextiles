@@ -3,7 +3,7 @@ import crypto from 'node:crypto';
 import { Customer } from '../../models/Customer';
 import { User } from '../../models/user.model';
 import { audit } from '../../lib/audit';
-import { badRequest, HttpError } from '../../lib/http';
+import { badRequest, conflict, HttpError } from '../../lib/http';
 import { signToken } from '../../middleware/auth';
 import type { AuthUser } from '../../middleware/auth';
 import { permissionsForUserRole } from '../../lib/roles';
@@ -109,10 +109,12 @@ export async function changePassword(
   await audit(actor, 'auth.password_changed', 'User', userId, `${actor.name} changed their password`);
 }
 
-export async function updateProfile(userId: string, actor: AuthUser, name: string, phone: string) {
+export async function updateProfile(userId: string, actor: AuthUser, name: string, username: string, phone: string) {
   const user = await User.findById(userId);
   if (!user) throw new HttpError(404, 'Account not found');
+  if (await User.exists({ username, _id: { $ne: userId } })) throw conflict('username: Username is already taken');
   user.name = name;
+  user.username = username;
   user.phone = phone;
   await user.save();
   await audit({ ...actor, name }, 'user.profile_updated', 'User', userId, `${name} updated their profile`);

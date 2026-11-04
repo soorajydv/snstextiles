@@ -12,7 +12,7 @@ import { AVATAR_EXTENSIONS, MAX_AVATAR_BYTES, validateUploadFile } from '@/lib/u
 export default function ProfilePage() {
   const { user, meta, refreshUser, logout } = useAuth();
   const toast = useToast();
-  const [form, setForm] = useState({ name: user.name, phone: user.phone });
+  const [form, setForm] = useState({ name: user.name, username: user.username, phone: user.phone });
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [avatarBusy, setAvatarBusy] = useState(false);
@@ -87,6 +87,7 @@ export default function ProfilePage() {
           </div>
           <form onSubmit={saveProfile} className="form-grid">
             <Field label="Full name *" full><input required minLength={2} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></Field>
+            <Field label="Username *" full hint="Lowercase letters, numbers, dots, underscores or hyphens"><input required minLength={3} maxLength={40} pattern="[a-zA-Z0-9._-]+" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value.toLowerCase() })} /></Field>
             <Field label="Phone"><input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></Field>
             <Field label="Email"><input value={user.email} disabled /></Field>
             <Field label="Role"><input value={roleLabel(user.role, meta.roles)} disabled /></Field>

@@ -82,8 +82,8 @@ export async function changePasswordController(req: Request, res: Response) {
 
 export async function updateProfileController(req: Request, res: Response) {
   const me = currentUser(req);
-  const { name, phone } = parse(profileSchema, req.body);
-  res.json({ user: await updateProfile(me.id, me, name, phone) });
+  const { name, username, phone } = parse(profileSchema, req.body);
+  res.json({ user: await updateProfile(me.id, me, name, username, phone) });
 }
 
 export async function deleteAccountController(req: Request, res: Response) {

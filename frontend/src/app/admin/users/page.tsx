@@ -154,7 +154,7 @@ function UserModal({ user, onClose, onSaved }: { user: UserRow | null; onClose: 
     const customer = form.role === 'customer' ? form.customer || null : null;
     try {
       if (user) {
-        await api(`/users/${user.id}`, { method: 'PATCH', body: { name: form.name, phone: form.phone, role: form.role, customer, active: form.active } });
+        await api(`/users/${user.id}`, { method: 'PATCH', body: { name: form.name, username: form.username, phone: form.phone, role: form.role, customer, active: form.active } });
       } else {
         const result = await api<{ emailSent: boolean }>('/users', { method: 'POST', body: { name: form.name, username: form.username, email: form.email, phone: form.phone, role: form.role, customer, password: form.password } });
         toast(result.emailSent ? `Account created and login details emailed to ${form.email}` : 'Account created, but the welcome email could not be sent', result.emailSent ? 'ok' : 'error');
@@ -175,7 +175,7 @@ function UserModal({ user, onClose, onSaved }: { user: UserRow | null; onClose: 
         {error && <Notice tone="error" style={{ marginBottom: 14 }}>{error}</Notice>}
         <div className="form-grid">
           <Field label="Full name *"><input required value={form.name} onChange={(e) => { const name = e.target.value; setForm({ ...form, name, username: !usernameEdited ? usernameFromName(name) : form.username }); }} /></Field>
-          <Field label="Username *" hint="Defaults from the full name; you can adjust it if needed"><input required minLength={3} maxLength={40} pattern="[a-zA-Z0-9._-]+" disabled={!!user} value={form.username} onChange={(e) => { setUsernameEdited(true); setForm({ ...form, username: e.target.value.toLowerCase() }); }} /></Field>
+          <Field label="Username *" hint="Defaults from the full name; you can adjust it if needed"><input required minLength={3} maxLength={40} pattern="[a-zA-Z0-9._-]+" value={form.username} onChange={(e) => { setUsernameEdited(true); setForm({ ...form, username: e.target.value.toLowerCase() }); }} /></Field>
           <Field label="Email (sign-in) *"><input type="email" required disabled={!!user} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></Field>
           <Field label="Role *" hint={ROLE_SCOPE[form.role] ?? 'Custom role permissions'}>
             <select value={form.role} disabled={self} onChange={(e) => setForm({ ...form, role: e.target.value as Role })}>

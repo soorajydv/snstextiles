@@ -98,6 +98,7 @@ router.post('/', async (req, res) => {
 
 const updateSchema = z.object({
   name: z.string().trim().min(2).optional(),
+  username: z.string().trim().toLowerCase().min(3, 'Username must be at least 3 characters').max(40).regex(/^[a-z0-9._-]+$/, 'Use only letters, numbers, dots, underscores or hyphens').optional(),
   role: z.string().trim().toLowerCase().min(2).max(40).optional(),
   phone: z.string().trim().max(30).optional(),
   active: z.boolean().optional(),
@@ -111,6 +112,7 @@ router.patch('/:id', async (req, res) => {
   if (body.role && !(await roleExists(body.role))) throw badRequest('role: Role not found');
   const user = await User.findById(id);
   if (!user) throw notFound('User not found');
+  if (body.username && await User.exists({ username: body.username, _id: { $ne: id } })) throw conflict('username: Username is already taken');
   if (id === me.id && (body.active === false || (body.role && body.role !== user.role))) {
     throw badRequest('You cannot deactivate or change your own role');
   }
@@ -118,6 +120,7 @@ router.patch('/:id', async (req, res) => {
   const customerInput = body.customer === undefined ? (user.customer ? String(user.customer) : null) : body.customer;
   const customer = await checkCustomerLink(role, customerInput);
   if (body.name !== undefined) user.name = body.name;
+  if (body.username !== undefined) user.username = body.username;
   if (body.phone !== undefined) user.phone = body.phone;
   if (body.active !== undefined) user.active = body.active;
   user.role = role;
