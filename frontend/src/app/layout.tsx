@@ -10,9 +10,9 @@ export const metadata: Metadata = {
   applicationName: 'SNS Textiles Factory Management',
   manifest: appPath('/manifest.webmanifest'),
   icons: {
-    icon: appPath('/icon.svg'),
-    shortcut: appPath('/icon.svg'),
-    apple: appPath('/icon.svg'),
+    icon: appPath('/sns-favicon.png'),
+    shortcut: appPath('/sns-favicon.png'),
+    apple: appPath('/sns-favicon.png'),
   },
   appleWebApp: { capable: true, title: 'SNS Textiles', statusBarStyle: 'default' },
 };
