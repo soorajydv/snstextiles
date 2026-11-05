@@ -58,27 +58,6 @@ main { min-width: 0; }
 .top-actions { display: flex; align-items: center; gap: 10px; }
 .theme-toggle { border: 1px solid light-dark(#d7ded6, #3a4a40); background: light-dark(#fff, #1a2720); color: inherit; border-radius: 9px; min-width: 36px; height: 34px; font-size: 15px; }
 .theme-toggle:hover { border-color: #6d9a7b; }
-.notification-wrap { position: relative; }
-.notification-dot { position: absolute; top: -3px; right: -3px; min-width: 16px; height: 16px; padding: 0 4px; display: grid; place-items: center; border-radius: 99px; background: #b34d44; color: #fff; font-size: 9px; font-weight: 800; }
-.notification-menu { position: absolute; top: calc(100% + 10px); right: 0; width: min(360px, calc(100vw - 32px)); background: light-dark(#fff, #18221c); border: 1px solid light-dark(#dfe6df, #334238); border-radius: 13px; box-shadow: 0 18px 50px #0003; padding: 12px; z-index: 30; }
-.notification-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 2px 3px 12px; border-bottom: 1px solid light-dark(#e4e7f0, #2b4b6b); }
-.notification-head h3 { margin: 0; }
-.notification-head > div > span { display: block; color: light-dark(#74809e, #afc0d3); font-size: 10px; margin-top: 4px; }
-.notification-head-actions { display: flex; align-items: center; gap: 8px; }
-.notification-mark-all { border: 0; background: transparent; color: light-dark(#3f72af, #9dc5ed); font-size: 10px; font-weight: 700; padding: 4px 0; cursor: pointer; white-space: nowrap; }
-.notification-mark-all:disabled { opacity: .55; cursor: wait; }
-.notification-close { display: grid; place-items: center; border: 0; border-radius: 7px; padding: 5px; color: inherit; background: transparent; }
-.notification-close:hover { background: light-dark(#edf2f8, #1d4569); }
-.notification-list { max-height: min(420px, calc(100vh - 170px)); overflow-y: auto; margin: 8px -4px 0; padding: 0 4px; }
-.notification-item { display: flex; align-items: flex-start; gap: 10px; padding: 11px 8px; border-radius: 9px; border: 1px solid transparent; }
-.notification-item:hover { background: light-dark(#f4f8f3, #213026); border-color: light-dark(#e0e9df, #334c3b); }
-.notification-item.read { opacity: .62; }
-.notification-item.read:hover { opacity: .85; }
-.notification-unread { flex: 0 0 7px; width: 7px; height: 7px; margin-top: 5px; border-radius: 50%; background: #3f72af; }
-.notification-icon { width: 28px; height: 28px; display: grid; place-items: center; flex: 0 0 auto; border-radius: 8px; color: var(--palette-blue); background: light-dark(#dbe2ef, #1d4569); }
-.notification-copy { min-width: 0; }
-.notification-item strong { display: block; font-size: 11px; }
-.notification-item .notification-copy > span { display: block; color: light-dark(#718078, #a8b7ae); font-size: 10px; line-height: 1.4; margin-top: 3px; }
 .user-chip { display: flex; align-items: center; gap: 10px; font-size: 12px; position: relative; }
 .user-chip .who { text-align: right; line-height: 1.3; }
 .user-chip .who small { display: block; color: light-dark(#718078, #a8b7ae); font-size: 10px; }
@@ -460,9 +439,6 @@ aside.sidebar { background: light-dark(#202653, #090e21); }
 .subtitle, .card-sub, .stat-note { color: light-dark(#6f7895, #a8b1cf); }
 .theme-toggle, .icon-btn { border-color: light-dark(#dfe3ee, #303b5b); background: light-dark(#fff, #171f38); }
 .theme-toggle:hover, .icon-btn:hover { border-color: #817bff; }
-.notification-menu { background: light-dark(#fff, #151d35); border-color: light-dark(#e0e4ef, #303b5b); box-shadow: 0 18px 50px #11193626; }
-.notification-item:hover { background: light-dark(#f1f2ff, #202a49); border-color: light-dark(#dedcff, #3d4770); }
-.notification-item span, .user-chip .who small { color: light-dark(#74809e, #a8b1cf); }
 .avatar { background: #dedcff; color: #2b2768; }
 .content { background: transparent; }
 h1 { color: light-dark(#151d35, #f3f5ff); }
@@ -535,23 +511,18 @@ aside.sidebar { background: var(--palette-navy); }
 .subtitle, .card-sub, .stat-note { color: light-dark(#647994, #afc0d3); }
 .theme-toggle, .icon-btn { border-color: light-dark(#c9d5e5, #315476); background: light-dark(#fff, #173653); }
 .theme-toggle:hover, .icon-btn:hover { border-color: var(--palette-blue); }
-.theme-toggle, .notification-wrap > .icon-btn { border: 0; background: transparent; box-shadow: none; color: inherit; }
-.theme-toggle:hover, .notification-wrap > .icon-btn:hover, .notification-wrap > .icon-btn[aria-expanded="true"] { border: 0; background: transparent; color: var(--palette-blue); }
 
 /* Explicit dark surfaces: the app remains truly dark even when the OS preference differs. */
 html[data-theme="dark"] body { background: #08111f; color: #edf3fb; }
 html[data-theme="dark"] aside.sidebar { background: #06101d; }
 html[data-theme="dark"] .topbar { background: #0b1728; border-bottom-color: #1c3550; }
 html[data-theme="dark"] .card { background: #101d2f; border-color: #203b58; box-shadow: 0 10px 28px #0000002e; }
-html[data-theme="dark"] .theme-toggle, html[data-theme="dark"] .notification-wrap > .icon-btn { color: #dce8f5; }
-html[data-theme="dark"] .theme-toggle:hover, html[data-theme="dark"] .notification-wrap > .icon-btn:hover, html[data-theme="dark"] .notification-wrap > .icon-btn[aria-expanded="true"] { color: #9ec1e5; }
+html[data-theme="dark"] .theme-toggle { color: #dce8f5; }
+html[data-theme="dark"] .theme-toggle:hover { color: #9ec1e5; }
 html[data-theme="dark"] .btn { background: #12243a; border-color: #2a4b6b; color: #edf3fb; }
 html[data-theme="dark"] .btn.primary { background: #3f72af; border-color: #3f72af; color: #fff; }
 html[data-theme="dark"] .search input, html[data-theme="dark"] .field input, html[data-theme="dark"] .field select, html[data-theme="dark"] .field textarea, html[data-theme="dark"] .toolbar select { background: #0b1728; border-color: #2a4b6b; color: #edf3fb; }
-html[data-theme="dark"] .notification-menu { background: #101d2f; border-color: #294967; }
-html[data-theme="dark"] .notification-head { border-bottom-color: #294967; }
-html[data-theme="dark"] .notification-item:hover { background: #172d47; border-color: #315d87; }
-html[data-theme="dark"] .notification-icon, html[data-theme="dark"] .stat-icon, html[data-theme="dark"] .activity-dot { background: #173653; color: #b8d0e8; }
+html[data-theme="dark"] .stat-icon, html[data-theme="dark"] .activity-dot { background: #173653; color: #b8d0e8; }
 html[data-theme="dark"] th { border-bottom-color: #203b58; }
 html[data-theme="dark"] td { border-bottom-color: #1c3550; }
 html[data-theme="dark"] tbody tr.clickable:hover td { background: #132a43; }
@@ -562,9 +533,7 @@ html[data-theme="dark"] .chart-summary > div { background: #12243a; }
 html[data-theme="dark"] .notice { background: #142d47; border-color: #315d87; color: #d7e6f4; }
 html[data-theme="dark"] .modal { background: #101d2f; border-color: #294967; }
 html[data-theme="dark"] .required-mark { color: #ff7b86; }
-.notification-menu { background: light-dark(#fff, #163653); border-color: light-dark(#dbe2ef, #315476); }
-.notification-item:hover { background: light-dark(var(--palette-soft), #1d4569); border-color: light-dark(#c3d0e1, #3f72af); }
-.notification-item span, .user-chip .who small { color: light-dark(#647994, #b0c2d5); }
+.user-chip .who small { color: light-dark(#647994, #b0c2d5); }
 .avatar { background: var(--palette-soft); color: var(--palette-navy); }
 h1 { color: light-dark(var(--palette-navy), var(--palette-surface)); }
 .muted { color: light-dark(#647994, #afc0d3); }
@@ -616,5 +585,5 @@ html[data-theme="dark"] .notice.error { background: #4a1720; border-color: #a83a
 .login-art { background: var(--palette-navy); }
 .login-art p { color: #c1d0df; }
 .spinner { border-color: light-dark(#dbe2ef, #2b4b6b); border-top-color: var(--palette-blue); }
-.theme-toggle, .notification-wrap > .icon-btn { border: 0; background: transparent; box-shadow: none; color: inherit; }
-.theme-toggle:hover, .notification-wrap > .icon-btn:hover, .notification-wrap > .icon-btn[aria-expanded="true"] { border: 0; background: transparent; color: var(--palette-blue); }
+.theme-toggle { border: 0; background: transparent; box-shadow: none; color: inherit; }
+.theme-toggle:hover { border: 0; background: transparent; color: var(--palette-blue); }

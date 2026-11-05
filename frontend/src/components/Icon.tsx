@@ -1,7 +1,7 @@
 import type { SVGProps } from 'react';
 
 export type IconName =
-  | 'activity' | 'alert' | 'arrowUp' | 'attendance' | 'bell' | 'box' | 'chart' | 'check' | 'chevronLeft' | 'chevronRight' | 'close' | 'customers' | 'dashboard'
+  | 'activity' | 'alert' | 'arrowUp' | 'attendance' | 'box' | 'chart' | 'check' | 'chevronLeft' | 'chevronRight' | 'close' | 'customers' | 'dashboard'
   | 'delivery' | 'download' | 'eye' | 'eyeOff' | 'install' | 'inventory' | 'menu' | 'moon' | 'orders' | 'production' | 'receipt'
   | 'profile' | 'roles' | 'settings' | 'sidebar' | 'sun' | 'users' | 'logout';
 
@@ -10,7 +10,6 @@ const PATHS: Record<IconName, React.ReactNode> = {
   alert: <><circle cx="12" cy="12" r="9" /><path d="M12 8v5M12 16h.01" /></>,
   arrowUp: <><path d="M12 19V5M6 11l6-6 6 6" /></>,
   attendance: <><circle cx="12" cy="12" r="8" /><path d="M12 7v5l3 2" /></>,
-  bell: <><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" /></>,
   box: <><path d="m4 7 8-4 8 4-8 4-8-4Z" /><path d="M4 7v10l8 4 8-4V7M12 11v10" /></>,
   chart: <><path d="M4 19V5M4 19h16" /><path d="m7 15 3-4 3 2 5-7" /></>,
   check: <path d="m5 12 4 4L19 6" />,

@@ -2,11 +2,10 @@
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { AppLink as Link } from './AppLink';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useAuth } from './AuthProvider';
 import { initials, roleLabel } from '@/lib/format';
 import type { Permission } from '@/lib/types';
-import { api } from '@/lib/api';
 import { useTheme } from './ThemeProvider';
 import { Icon, type IconName } from './Icon';
 import { PwaInstallButton } from './PwaInstallButton';
@@ -14,8 +13,6 @@ import { ConfirmModal } from './ui';
 import { appPath, assetPath } from '@/lib/paths';
 
 type NavItem = { href: string; label: string; icon: IconName; permission?: Permission };
-type NotificationItem = { id: string; type?: string; title: string; body: string; href: string; read: boolean };
-
 const NAV: { label: string; items: NavItem[] }[] = [
   {
     label: 'Workspace',
@@ -68,15 +65,10 @@ const TITLES: Record<string, string> = {
 export function AppShell({ children }: { children: ReactNode }) {
   const { user, meta, settings, logout } = useAuth();
   const pathname = usePathname();
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
-  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
-  const [notificationsBusy, setNotificationsBusy] = useState(false);
-  const notificationRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const { theme, toggleTheme } = useTheme();
   const section = pathname.split('/')[1] || 'dashboard';
@@ -87,22 +79,6 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => setOpen(false), [pathname]);
-
-  useEffect(() => {
-    if (!notificationsOpen) return;
-    const closeOnOutsideClick = (event: PointerEvent) => {
-      if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) setNotificationsOpen(false);
-    };
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setNotificationsOpen(false);
-    };
-    document.addEventListener('pointerdown', closeOnOutsideClick);
-    document.addEventListener('keydown', closeOnEscape);
-    return () => {
-      document.removeEventListener('pointerdown', closeOnOutsideClick);
-      document.removeEventListener('keydown', closeOnEscape);
-    };
-  }, [notificationsOpen]);
 
   useEffect(() => {
     if (!userMenuOpen) return;
@@ -120,41 +96,8 @@ export function AppShell({ children }: { children: ReactNode }) {
     };
   }, [userMenuOpen]);
 
-  useEffect(() => {
-    let active = true;
-    api<{ notifications: NotificationItem[] }>('/notifications')
-      .then((data) => { if (active) setNotifications(data.notifications); })
-      .catch(() => undefined);
-    return () => { active = false; };
-  }, [pathname]);
-
   const visible = NAV.map((g) => ({ ...g, items: g.items.filter((i) => !i.permission || meta.permissions.includes(i.permission)) })).filter((g) => g.items.length);
   const title = user.role === 'customer' && section === 'orders' ? 'My orders' : TITLES[section] ?? 'SNS Textiles';
-  const notificationIcon = (type?: string): IconName => type === 'stock' ? 'inventory' : type === 'attendance' ? 'attendance' : type === 'approval' ? 'orders' : type === 'overdue' ? 'alert' : 'bell';
-  const unreadCount = notifications.filter((notification) => !notification.read).length;
-
-  async function markNotificationRead(id: string) {
-    setNotifications((current) => current.map((notification) => notification.id === id ? { ...notification, read: true } : notification));
-    try {
-      await api(`/notifications/${encodeURIComponent(id)}/read`, { method: 'POST' });
-    } catch {
-      setNotifications((current) => current.map((notification) => notification.id === id ? { ...notification, read: false } : notification));
-    }
-  }
-
-  async function markAllNotificationsRead() {
-    if (!unreadCount || notificationsBusy) return;
-    setNotificationsBusy(true);
-    setNotifications((current) => current.map((notification) => ({ ...notification, read: true })));
-    try {
-      await api('/notifications/read-all', { method: 'POST' });
-    } catch {
-      setNotifications((current) => current.map((notification) => ({ ...notification, read: false })));
-    } finally {
-      setNotificationsBusy(false);
-    }
-  }
-
   async function performLogout() {
     setUserMenuOpen(false);
     setLogoutConfirmOpen(false);
@@ -204,13 +147,6 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className="top-actions">
             <PwaInstallButton />
             <button className="theme-toggle" onClick={toggleTheme} aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`} title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}><Icon name={theme === 'dark' ? 'sun' : 'moon'} size={17} /></button>
-            <div className="notification-wrap" ref={notificationRef}>
-              <button className="icon-btn" onClick={() => setNotificationsOpen((value) => !value)} aria-label="Open notifications" aria-expanded={notificationsOpen}><Icon name="bell" size={17} />{unreadCount > 0 && <span className="notification-dot">{unreadCount > 9 ? '9+' : unreadCount}</span>}</button>
-              {notificationsOpen && <div className="notification-menu">
-                <div className="notification-head"><div><h3>Notifications</h3><span>{unreadCount ? `${unreadCount} unread alert${unreadCount === 1 ? '' : 's'}` : 'You’re all caught up'}</span></div><div className="notification-head-actions">{unreadCount > 0 && <button className="notification-mark-all" onClick={markAllNotificationsRead} disabled={notificationsBusy}>{notificationsBusy ? 'Saving…' : 'Mark all as read'}</button>}<button className="notification-close" onClick={() => setNotificationsOpen(false)} aria-label="Close notifications"><Icon name="close" size={15} /></button></div></div>
-                {notifications.length ? <div className="notification-list">{notifications.map((notification) => <Link key={notification.id} href={notification.href} className={`notification-item ${notification.read ? 'read' : ''}`} onClick={async (event) => { event.preventDefault(); await markNotificationRead(notification.id); setNotificationsOpen(false); router.push(appPath(notification.href)); }}><span className="notification-icon"><Icon name={notificationIcon(notification.type)} size={15} /></span><span className="notification-copy"><strong>{notification.title}</strong><span>{notification.body}</span></span>{!notification.read && <span className="notification-unread" aria-label="Unread notification" />}</Link>)}</div> : <div className="empty">No new notifications.</div>}
-              </div>}
-            </div>
             <div className="user-chip" ref={userMenuRef}>
               <div className="who">
                 {user.name}
