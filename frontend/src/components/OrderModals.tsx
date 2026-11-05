@@ -121,11 +121,14 @@ export function RecordPaymentModal({ orders, initialOrderId, onClose, onSaved }:
 export function DeliverModal({ order, onClose, onSaved }: { order: Order; onClose: () => void; onSaved: Done<Order> }) {
   const { meta } = useAuth();
   const toast = useToast();
-  const [form, setForm] = useState({ packedQuantity: String(order.quantity), recipient: '', method: meta.deliveryMethods[0], trackingRef: '', note: '' });
+  const alreadyDispatched = order.delivery.packedQuantity ?? 0;
+  const remaining = Math.max(0, order.quantity - alreadyDispatched);
+  const [form, setForm] = useState({ packedQuantity: String(remaining), recipient: '', method: meta.deliveryMethods[0], trackingRef: '', note: '' });
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setForm({ ...form, [k]: e.target.value });
-  const diff = Number(form.packedQuantity) - order.quantity;
+  const dispatchQuantity = Number(form.packedQuantity) || 0;
+  const diff = dispatchQuantity - remaining;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -149,8 +152,8 @@ export function DeliverModal({ order, onClose, onSaved }: { order: Order; onClos
           <Notice tone="error" style={{ marginBottom: 14 }}>Dispatch is blocked until the outstanding balance of {fmtMoney(order.balance)} is paid.</Notice>
         )}
         <div className="form-grid">
-          <Field label="Packed quantity *" hint={diff === 0 ? `Ordered: ${order.quantity}` : diff < 0 ? `Short by ${-diff}` : `Over by ${diff}`}>
-            <input type="number" min="0" required value={form.packedQuantity} onChange={set('packedQuantity')} />
+          <Field label="Dispatch quantity *" hint={diff === 0 ? `Remaining: ${remaining}` : diff < 0 ? `Leaves ${-diff} still to dispatch` : `Exceeds remaining by ${diff}`}>
+            <input type="number" min="1" max={remaining} required value={form.packedQuantity} onChange={set('packedQuantity')} />
           </Field>
           <Field label="Received by *">
             <input required value={form.recipient} onChange={set('recipient')} placeholder="Name of person receiving" />

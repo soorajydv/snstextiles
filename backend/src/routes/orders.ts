@@ -419,7 +419,7 @@ router.post('/:id/send-back', requirePermission('orders.send_back'), async (req,
 });
 
 const deliverSchema = z.object({
-  packedQuantity: z.coerce.number().int().min(0),
+  packedQuantity: z.coerce.number().int().min(1),
   recipient: z.string().trim().min(2, 'Enter who received the goods').max(120),
   method: z.enum(DELIVERY_METHODS),
   trackingRef: z.string().trim().max(120).optional().default(''),
@@ -434,14 +434,22 @@ router.post('/:id/deliver', requirePermission('orders.deliver'), async (req, res
   if (!order.totalAmount || order.amountPaid < order.totalAmount) {
     throw conflict('Dispatch is blocked until the order is fully paid');
   }
-  order.delivery = { ...body, deliveredAt: new Date(), by: user.id, byName: user.name } as never;
-  order.stage = 'delivered';
-  const diff = body.packedQuantity - order.quantity;
+  const previouslyPacked = order.delivery?.packedQuantity ?? 0;
+  const totalPacked = previouslyPacked + body.packedQuantity;
+  if (totalPacked > order.quantity) {
+    throw badRequest(`packedQuantity: Only ${order.quantity - previouslyPacked} sets remain to be dispatched`);
+  }
+  const fullyDispatched = totalPacked === order.quantity;
+  order.delivery = { ...body, packedQuantity: totalPacked, deliveredAt: new Date(), by: user.id, byName: user.name } as never;
+  if (fullyDispatched) order.stage = 'delivered';
+  const diff = totalPacked - order.quantity;
   const qtyNote = diff === 0 ? '' : diff < 0 ? ` (short by ${-diff})` : ` (over by ${diff})`;
-  order.history.push({ from: 'ready', to: 'delivered', by: user.id, byName: user.name, note: `Delivered to ${body.recipient} via ${body.method}${qtyNote}`, at: new Date() } as never);
+  if (fullyDispatched) {
+    order.history.push({ from: 'ready', to: 'delivered', by: user.id, byName: user.name, note: `Delivered to ${body.recipient} via ${body.method}${qtyNote}`, at: new Date() } as never);
+  }
   order.status = computeStatus(order);
   await order.save();
-  await audit(user, 'order.delivered', 'Order', String(order._id), `${order.orderNo} delivered to ${body.recipient}${qtyNote}`);
+  await audit(user, fullyDispatched ? 'order.delivered' : 'order.partially_dispatched', 'Order', String(order._id), `${order.orderNo} ${fullyDispatched ? 'delivered' : 'partially dispatched'} ${body.packedQuantity} sets to ${body.recipient} (${totalPacked}/${order.quantity})`);
   res.json(await respond(order, user));
 });
 

@@ -44,7 +44,7 @@ export default function DeliveryPage() {
                   <tr key={o.id}>
                     <td><Link className="order-id" href={`/orders/${o.id}`}>{o.orderNo}</Link></td>
                     <td>{o.customer.name}</td>
-                    <td className="num">{o.quantity}</td>
+                    <td className="num">{o.delivery.packedQuantity ?? 0} / {o.quantity}</td>
                     <td><Badge>{o.status}</Badge></td>
                     <td><DueDate order={o} /></td>
                     {money && <td className={`num ${o.balance ? 'amber' : ''}`}>{fmtMoney(o.balance)}</td>}
@@ -52,7 +52,7 @@ export default function DeliveryPage() {
                       {o.stage === 'ready' && canRecordPayment && (o.balance ?? 0) > 0 ? (
                         <button className="btn small" onClick={() => setPaying(o)}>Record payment</button>
                       ) : o.stage === 'ready' && meta.permissions.includes('orders.deliver') && !!o.totalAmount && (o.balance ?? 0) <= 0 ? (
-                        <button className="btn small primary" onClick={() => setDispatching(o)}>Confirm dispatch</button>
+                        <button className="btn small primary" onClick={() => setDispatching(o)}>{o.delivery.packedQuantity ? 'Dispatch remaining' : 'Confirm dispatch'}</button>
                       ) : o.stage === 'ready' && (o.balance ?? 0) > 0 ? (
                         <span className="muted small">Payment pending</span>
                       ) : (
