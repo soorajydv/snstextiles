@@ -49,7 +49,7 @@ export default function ProductionPage() {
     setBusyId(o.id);
     try {
       const res = await api<{ order: Order }>(`/orders/${o.id}/cutting/complete`, { method: 'POST', body: {} });
-      toast(`${o.orderNo} → Cutting complete`);
+      toast(`${o.orderNo} → ${res.order.stage === 'printing' ? 'Printing' : 'Cutting complete'}`);
       setData((d) => d && { orders: d.orders.map((x) => (x.id === o.id ? res.order : x)) });
     } catch (err) {
       toast(errorMessage(err), 'error');

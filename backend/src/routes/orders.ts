@@ -383,11 +383,19 @@ router.post('/:id/cutting/complete', requirePermission('orders.stage.complete'),
   if (user.role !== 'owner' && user.role !== 'cutting') throw forbidden('Only the Cutting team or the owner can complete Cutting');
   const order = await loadOrderForUser(assertObjectId(req.params.id, 'Order'), user);
   if (order.cuttingStatus === 'completed') throw conflict('Cutting is already complete for this order');
+  if (order.stage === 'design' && !isArtworkApproved(order)) {
+    throw conflict('Cutting cannot move this order to Printing until the customer approves the latest artwork version');
+  }
   order.cuttingStatus = 'completed';
   order.cuttingCompletedAt = new Date();
   order.cuttingCompletedByName = user.name;
+  if (order.stage === 'design') {
+    order.stage = 'printing';
+    order.history.push({ from: 'design', to: 'printing', by: user.id, byName: user.name, note: 'Cutting completed; moved to Printing', at: new Date() } as never);
+    order.status = computeStatus(order);
+  }
   await order.save();
-  await audit(user, 'order.cutting_completed', 'Order', String(order._id), `Completed Cutting for ${order.orderNo}`);
+  await audit(user, 'order.cutting_completed', 'Order', String(order._id), `Completed Cutting for ${order.orderNo}${order.stage === 'printing' ? ' and moved it to Printing' : ''}`);
   res.json(await respond(order, user));
 });
 
