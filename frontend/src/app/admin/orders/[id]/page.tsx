@@ -275,6 +275,7 @@ export default function OrderDetailPage() {
               <div className="kv"><span>Paid</span><strong className="green">{fmtMoney(order.amountPaid)}</strong></div>
               <div className="kv"><span>Balance</span><strong className={order.balance ? 'amber' : 'green'}>{fmtMoney(order.balance)}</strong></div>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 14 }}>
+                {meta.permissions.includes('orders.update') && !order.unitRate && <button className="btn small primary" onClick={() => setModal('edit')}>Set rate</button>}
                 {meta.permissions.includes('payments.record') && (order.balance ?? 0) > 0 && <button className="btn small primary" onClick={() => setModal('payment')}>＋ Record payment</button>}
                 {meta.permissions.includes('orders.invoice') && !order.invoice?.number && !!order.totalAmount && <button className="btn small" disabled={busy} onClick={issueInvoice}>Issue invoice</button>}
                 <Link className="btn small" href={`/invoice/${order.id}`} target="_blank">{order.invoice?.number ? 'View invoice' : 'View quotation'}</Link>

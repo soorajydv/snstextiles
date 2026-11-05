@@ -257,6 +257,10 @@ router.patch('/:id', requirePermission('orders.update'), async (req, res) => {
     quantity: body.quantity ?? order.quantity,
     players: body.players ?? (order.players.map((p) => ({ ...p })) as z.infer<typeof playerSchema>[]),
   });
+  const nextTotal = (body.unitRate ?? order.unitRate) * (merged.quantity ?? order.quantity);
+  if (order.amountPaid > nextTotal + 0.001) {
+    throw conflict(`The new order total ${nextTotal} cannot be less than payments already recorded (${order.amountPaid})`);
+  }
 
   if (body.teamName !== undefined) order.teamName = body.teamName;
   if (body.neckType !== undefined) order.neckType = body.neckType;
@@ -269,7 +273,7 @@ router.patch('/:id', requirePermission('orders.update'), async (req, res) => {
     order.set('players', merged.players);
   }
   if (body.unitRate !== undefined) order.unitRate = body.unitRate;
-  order.totalAmount = order.unitRate * order.quantity;
+  order.totalAmount = nextTotal;
   order.status = computeStatus(order);
   await order.save();
   await audit(user, 'order.updated', 'Order', String(order._id), `Updated order ${order.orderNo}`);
