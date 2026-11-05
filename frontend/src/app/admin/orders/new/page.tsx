@@ -309,7 +309,7 @@ export default function NewOrderPage() {
           {playerListMode === 'image' && (
             <div style={{ marginTop: 14, maxWidth: 520 }}>
               <Field label="Player list picture *" hint="Clear, readable image showing player names, jersey numbers and sizes." error={uploadErrors.playerListImage}>
-                <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" required onChange={(e) => { selectPlayerListImage(e.target.files?.[0]); e.currentTarget.value = ''; }} />
+                <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={(e) => { selectPlayerListImage(e.target.files?.[0]); e.currentTarget.value = ''; }} />
                 {playerListImage && <LocalFilePreview file={playerListImage} />}
               </Field>
             </div>
