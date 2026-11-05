@@ -3,9 +3,22 @@ import { connectDb } from './db';
 import { createApp } from './app';
 import { seedIfEmpty } from './seed';
 import { ensureSystemRoles } from './lib/roles';
+import { User } from './models/user.model';
+
+async function migrateLegacyAvatars() {
+  await User.collection.updateMany(
+    { avatarUrl: { $in: [null, ''] }, avatarStoredName: { $type: 'string' } },
+    [{ $set: { avatarUrl: { $concat: [env.appUrl, '/api/auth/avatar/', '$avatarStoredName'] } } }],
+  );
+  await User.collection.updateMany(
+    { avatarUrl: { $type: 'string' }, avatarStoredName: { $type: 'string' } },
+    { $unset: { avatarStoredName: '', avatarMimeType: '' } },
+  );
+}
 
 async function main() {
   await connectDb(env.mongoUri);
+  await migrateLegacyAvatars();
   await ensureSystemRoles();
   if (process.env.SEED_ON_START === 'true') await seedIfEmpty();
   createApp().listen(env.port, () => {

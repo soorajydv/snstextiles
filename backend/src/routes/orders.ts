@@ -15,7 +15,7 @@ import {
   canCompleteStage, computeStatus, currentArtworkVersion, isArtworkApproved, loadOrderForUser, nextStage,
   orderScope, previousStage, serializeOrder,
 } from '../lib/workflow';
-import { isInlineSafe, removeUploadedFiles, storedFilePath, upload } from '../lib/uploads';
+import { compressUploadedImage, isInlineSafe, removeUploadedFiles, storedFilePath, upload } from '../lib/uploads';
 import { audit } from '../lib/audit';
 
 const router = Router();
@@ -160,6 +160,7 @@ router.post(
     const uploaded = req.files as Record<string, Express.Multer.File[]> | undefined;
     const allUploads = [...(uploaded?.jerseyImage ?? []), ...(uploaded?.files ?? []), ...(uploaded?.advanceProof ?? []), ...(uploaded?.playerListImage ?? [])];
     try {
+      await Promise.all(allUploads.map(compressUploadedImage));
       const body = normaliseSpec(parse(createSchema, parseMultipartData(req)));
       if (startOfDay(body.dueDate) < startOfToday()) throw badRequest('dueDate: Delivery date cannot be in the past');
       if (body.advance > 0 && body.advanceMethod !== 'Cash' && !uploaded?.advanceProof?.[0]) throw badRequest('advanceProof: Upload proof of payment for non-cash advances');
@@ -294,6 +295,7 @@ router.post('/:id/artworks', requirePermission('orders.artwork.upload'), upload.
   try {
     const order = await loadOrderForUser(assertObjectId(req.params.id, 'Order'), user);
     if (!req.file) throw badRequest('file: Choose an artwork file to upload');
+    await compressUploadedImage(req.file);
     if (order.stage !== 'design') throw conflict('Artwork can only be uploaded during Design & confirmation');
     const version = currentArtworkVersion(order) + 1;
     const note = typeof req.body?.note === 'string' ? req.body.note.trim().slice(0, 1000) : '';

@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import multer from 'multer';
+import sharp from 'sharp';
 import { env } from '../config/env';
 import { badRequest } from './http';
 
@@ -61,6 +62,23 @@ export function isInlineSafe(mimeType: string) {
 
 export function removeUploadedFiles(files: Express.Multer.File[] | undefined) {
   for (const f of files ?? []) fs.promises.unlink(f.path).catch(() => undefined);
+}
+
+/** Compresses uploaded raster images in place so image-heavy orders use less storage and bandwidth. */
+export async function compressUploadedImage(file: Express.Multer.File): Promise<Express.Multer.File> {
+  if (!AVATAR_MIME.includes(file.mimetype)) return file;
+  const storedName = `${path.basename(file.filename, path.extname(file.filename))}.webp`;
+  const outputPath = storedFilePath(storedName);
+  await sharp(file.path)
+    .rotate()
+    .webp({ quality: 78, effort: 4 })
+    .toFile(outputPath);
+  await fs.promises.unlink(file.path);
+  file.filename = storedName;
+  file.path = outputPath;
+  file.mimetype = 'image/webp';
+  file.size = (await fs.promises.stat(outputPath)).size;
+  return file;
 }
 
 export function removeStoredFile(storedName: string | null | undefined) {

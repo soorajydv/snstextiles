@@ -40,6 +40,7 @@ router.post('/reset-password', passwordResetLimiter, resetPasswordController);
 router.post('/logout', logoutController);
 router.get('/me', requireAuth, meController);
 router.get('/avatar', requireAuth, avatarController);
+router.get('/avatar/:storedName', requireAuth, avatarController);
 router.patch('/profile', requireAuth, updateProfileController);
 router.patch('/avatar', requireAuth, avatarUpload.single('avatar'), uploadAvatarController);
 router.delete('/avatar', requireAuth, deleteAvatarController);

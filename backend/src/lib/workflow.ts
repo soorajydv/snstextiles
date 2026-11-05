@@ -4,6 +4,7 @@ import type { AuthUser } from '../middleware/auth';
 import type { OrderAttrs, OrderDoc } from '../models/Order';
 import { forbidden, notFound } from './http';
 import { Order } from '../models/Order';
+import { publicUrl } from './urls';
 
 type OrderLike = Pick<OrderAttrs, 'artworks' | 'approval' | 'feedback' | 'stage'>;
 
@@ -77,7 +78,7 @@ export function assertCanSeeMoney(user: AuthUser) {
 }
 
 export function fileUrl(orderId: string, storedName: string) {
-  return `/api/orders/${orderId}/files/${storedName}`;
+  return publicUrl(`/api/orders/${orderId}/files/${encodeURIComponent(storedName)}`);
 }
 
 /** Shapes an order for the API, hiding financial fields from production roles. */

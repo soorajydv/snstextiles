@@ -1,5 +1,7 @@
 import bcrypt from 'bcryptjs';
 import crypto from 'node:crypto';
+import path from 'node:path';
+import sharp from 'sharp';
 import { Customer } from '../../models/Customer';
 import { User } from '../../models/user.model';
 import { audit } from '../../lib/audit';
@@ -7,7 +9,21 @@ import { badRequest, conflict, HttpError } from '../../lib/http';
 import { signToken } from '../../middleware/auth';
 import type { AuthUser } from '../../middleware/auth';
 import { permissionsForUserRole } from '../../lib/roles';
-import { removeStoredFile } from '../../lib/uploads';
+import { removeStoredFile, storedFilePath } from '../../lib/uploads';
+import { publicUrl } from '../../lib/urls';
+
+function avatarStoredName(avatarUrl: string | null | undefined): string | null {
+  if (!avatarUrl) return null;
+  try {
+    return path.basename(new URL(avatarUrl).pathname);
+  } catch {
+    return null;
+  }
+}
+
+function avatarUrl(storedName: string): string {
+  return publicUrl(`/api/auth/avatar/${encodeURIComponent(storedName)}`);
+}
 
 export async function login(identifier: string, password: string) {
   const normalizedIdentifier = identifier.trim().toLowerCase();
@@ -65,7 +81,7 @@ export async function getProfile(userId: string) {
     email: user.email,
     role: user.role,
     phone: user.phone,
-    avatarUrl: user.avatarStoredName ? '/api/auth/avatar' : '',
+    avatarUrl: user.avatarUrl ?? '',
     customer: customer ? { id: String(customer._id), name: customer.name } : null,
   };
 }
@@ -73,9 +89,15 @@ export async function getProfile(userId: string) {
 export async function updateAvatar(userId: string, actor: AuthUser, file: Express.Multer.File) {
   const user = await User.findById(userId);
   if (!user) throw new HttpError(404, 'Account not found');
-  const previous = user.avatarStoredName;
-  user.avatarStoredName = file.filename;
-  user.avatarMimeType = file.mimetype;
+  const previous = avatarStoredName(user.avatarUrl);
+  const storedName = `${path.basename(file.filename, path.extname(file.filename))}.webp`;
+  await sharp(file.path)
+    .rotate()
+    .resize(512, 512, { fit: 'cover', position: 'centre' })
+    .webp({ quality: 78, effort: 4 })
+    .toFile(storedFilePath(storedName));
+  removeStoredFile(file.filename);
+  user.avatarUrl = avatarUrl(storedName);
   await user.save();
   removeStoredFile(previous);
   await audit(actor, 'user.avatar_updated', 'User', userId, `${actor.name} updated their profile avatar`);
@@ -85,9 +107,8 @@ export async function updateAvatar(userId: string, actor: AuthUser, file: Expres
 export async function removeAvatar(userId: string, actor: AuthUser) {
   const user = await User.findById(userId);
   if (!user) throw new HttpError(404, 'Account not found');
-  const previous = user.avatarStoredName;
-  user.avatarStoredName = null;
-  user.avatarMimeType = null;
+  const previous = avatarStoredName(user.avatarUrl);
+  user.avatarUrl = '';
   await user.save();
   removeStoredFile(previous);
   await audit(actor, 'user.avatar_removed', 'User', userId, `${actor.name} removed their profile avatar`);

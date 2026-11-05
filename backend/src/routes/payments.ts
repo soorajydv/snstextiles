@@ -8,7 +8,8 @@ import { PAYMENT_METHODS } from '../lib/constants';
 import { assertObjectId, badRequest, conflict, notFound, pagination, parse } from '../lib/http';
 import { loadOrderForUser } from '../lib/workflow';
 import { audit } from '../lib/audit';
-import { removeStoredFile, removeUploadedFiles, storedFilePath, upload } from '../lib/uploads';
+import { compressUploadedImage, removeStoredFile, removeUploadedFiles, storedFilePath, upload } from '../lib/uploads';
+import { publicUrl } from '../lib/urls';
 
 const router = Router();
 
@@ -27,7 +28,7 @@ const toDto = (p: Record<string, any>) => ({
   method: p.method,
   reference: p.reference,
   note: p.note,
-  proof: p.proof?.storedName ? { originalName: p.proof.originalName, size: p.proof.size, url: `/api/payments/${String(p._id)}/proof` } : null,
+  proof: p.proof?.storedName ? { originalName: p.proof.originalName, size: p.proof.size, url: publicUrl(`/api/payments/${String(p._id)}/proof`) } : null,
   receivedAt: p.receivedAt,
   order: p.order && typeof p.order === 'object' && 'orderNo' in p.order ? { id: String(p.order._id), orderNo: p.order.orderNo } : { id: String(p.order), orderNo: '' },
   customer: p.customer && typeof p.customer === 'object' && 'name' in p.customer ? { id: String(p.customer._id), name: p.customer.name } : { id: String(p.customer), name: '' },
@@ -77,6 +78,7 @@ router.post('/', requirePermission('payments.record'), upload.single('proof'), a
   const user = currentUser(req);
   const uploaded = req.file;
   try {
+    if (uploaded) await compressUploadedImage(uploaded);
     const body = parse(createSchema, req.body);
     const order = await loadOrderForUser(assertObjectId(body.orderId, 'Order'), user);
     if (!order.totalAmount) throw conflict('Set the order price before recording payments');

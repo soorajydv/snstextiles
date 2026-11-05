@@ -68,9 +68,18 @@ export async function deleteAvatarController(req: Request, res: Response) {
 
 export async function avatarController(req: Request, res: Response) {
   const me = currentUser(req);
-  const user = await User.findById(me.id).select('+avatarStoredName avatarMimeType').lean();
-  if (!user?.avatarStoredName) { res.status(404).end(); return; }
-  res.type(user.avatarMimeType ?? 'application/octet-stream').sendFile(storedFilePath(user.avatarStoredName), (err) => { if (err && !res.headersSent) res.status(404).end(); });
+  const user = await User.findById(me.id).lean();
+  if (!user?.avatarUrl) { res.status(404).end(); return; }
+  let storedName: string;
+  try {
+    storedName = decodeURIComponent(new URL(user.avatarUrl).pathname.split('/').pop() ?? '');
+  } catch {
+    res.status(404).end();
+    return;
+  }
+  if (!storedName || (req.params.storedName && storedName !== req.params.storedName)) { res.status(404).end(); return; }
+  res.setHeader('Cache-Control', 'private, max-age=31536000, immutable');
+  res.sendFile(storedFilePath(storedName), (err) => { if (err && !res.headersSent) res.status(404).end(); });
 }
 
 export async function changePasswordController(req: Request, res: Response) {
