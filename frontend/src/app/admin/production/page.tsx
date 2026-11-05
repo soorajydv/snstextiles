@@ -83,7 +83,7 @@ export default function ProductionPage() {
                   <span className="kanban-count">{jobs.length}</span>
                 </div>
                 {jobs.map((o) => {
-                  const gated = stage === 'design' && !o.approved;
+                  const gated = (stage === 'design' && !o.approved) || (stage === 'printing' && o.cuttingStatus !== 'completed');
                   const isCutting = stage === 'cutting';
                   const canMove = isCutting ? (user.role === 'owner' || user.role === 'cutting') : stage !== 'ready' && canCompleteStage(user.role, stage, meta.permissions);
                   return (
@@ -117,7 +117,7 @@ export default function ProductionPage() {
                       )}
                       {canMove && gated && (
                         <Link className="btn small block" style={{ marginTop: 10 }} href={`/orders/${o.id}`}>
-                          {o.currentVersion ? 'Awaiting customer approval' : 'Upload artwork →'}
+                          {stage === 'printing' ? 'Waiting for Cutting' : o.currentVersion ? 'Awaiting customer approval' : 'Upload artwork →'}
                         </Link>
                       )}
                       {stage === 'ready' && meta.permissions.includes('orders.deliver') && (

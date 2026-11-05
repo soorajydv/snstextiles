@@ -367,7 +367,7 @@ router.post('/:id/advance', requirePermission('orders.stage.complete'), async (r
     throw conflict('Printing cannot start until the customer approves the latest artwork version');
   }
   const cuttingStatus = order.cuttingStatus ?? (from === 'design' ? 'pending' : 'completed');
-  if (from === 'design' && cuttingStatus !== 'completed') {
+  if (from === 'printing' && cuttingStatus !== 'completed') {
     throw conflict('Printing cannot start until Cutting marks this order complete');
   }
   order.stage = to;
@@ -419,6 +419,9 @@ router.post('/:id/deliver', requirePermission('orders.deliver'), async (req, res
   const order = await loadOrderForUser(assertObjectId(req.params.id, 'Order'), user);
   const body = parse(deliverSchema, req.body);
   if (order.stage !== 'ready') throw conflict('Only orders that are ready to dispatch can be delivered');
+  if (!order.totalAmount || order.amountPaid < order.totalAmount) {
+    throw conflict('Dispatch is blocked until the order is fully paid');
+  }
   order.delivery = { ...body, deliveredAt: new Date(), by: user.id, byName: user.name } as never;
   order.stage = 'delivered';
   const diff = body.packedQuantity - order.quantity;

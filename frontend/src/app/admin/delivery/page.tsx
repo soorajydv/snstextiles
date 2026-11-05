@@ -47,8 +47,10 @@ export default function DeliveryPage() {
                     <td><DueDate order={o} /></td>
                     {money && <td className={`num ${o.balance ? 'amber' : ''}`}>{fmtMoney(o.balance)}</td>}
                     <td>
-                      {o.stage === 'ready' && meta.permissions.includes('orders.deliver') ? (
+                      {o.stage === 'ready' && meta.permissions.includes('orders.deliver') && !!o.totalAmount && (o.balance ?? 0) <= 0 ? (
                         <button className="btn small primary" onClick={() => setDispatching(o)}>Confirm dispatch</button>
+                      ) : o.stage === 'ready' && (o.balance ?? 0) > 0 ? (
+                        <span className="muted small">Payment pending</span>
                       ) : (
                         <span className="muted small">{o.stage === 'ready' ? 'Waiting for owner' : 'In QC / packing'}</span>
                       )}

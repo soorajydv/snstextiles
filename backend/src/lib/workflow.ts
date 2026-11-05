@@ -61,7 +61,7 @@ export function canCompleteStage(user: AuthUser, stage: Stage): boolean {
 export function orderScope(user: AuthUser): Record<string, unknown> {
   // ObjectId (not string) so the filter also works inside aggregation $match stages.
   if (user.role === 'customer') return { customer: new Types.ObjectId(user.customerId ?? '000000000000000000000000') };
-  if (user.role === 'cutting') return { stage: 'design', cuttingStatus: { $ne: 'completed' } };
+  if (user.role === 'cutting') return { stage: { $in: ['design', 'printing'] }, cuttingStatus: { $ne: 'completed' } };
   const stages = ROLE_STAGES[user.role];
   if (stages) return { stage: { $in: stages } };
   return {};

@@ -50,8 +50,9 @@ export default function OrderDetailPage() {
   const hasShorts = order.productConfig.toLowerCase().includes('shorts');
   const hasTrouser = order.productConfig.toLowerCase().includes('trouser');
   const canAdvance = order.stage !== 'ready' && order.stage !== 'delivered' && canCompleteStage(role, order.stage, meta.permissions);
-  const cuttingBlocked = isDesign && order.cuttingStatus !== 'completed';
+  const cuttingBlocked = order.stage === 'printing' && order.cuttingStatus !== 'completed';
   const advanceBlocked = (isDesign && !order.approved) || cuttingBlocked;
+  const paymentComplete = !!order.totalAmount && (order.balance ?? order.totalAmount - (order.amountPaid ?? 0)) <= 0;
   const canUpload = isDesign && meta.permissions.includes('orders.artwork.upload');
   const canApprove = isDesign && order.currentVersion > 0 && !order.approved && meta.permissions.includes('orders.approve');
   const canFeedback = isDesign && order.currentVersion > 0 && meta.permissions.includes('orders.feedback');
@@ -94,11 +95,11 @@ export default function OrderDetailPage() {
             {meta.permissions.includes('orders.send_back') && !['design', 'delivered'].includes(order.stage) && <button className="btn" onClick={() => setModal('sendBack')}>↩ Send back</button>}
             {meta.permissions.includes('orders.delete') && isDesign && <button className="btn danger" onClick={() => setDeleteConfirmOpen(true)}>Delete</button>}
             {canAdvance && (
-              <button className="btn primary" disabled={advanceBlocked} title={advanceBlocked ? 'Waiting for customer artwork approval' : undefined} onClick={() => setModal('advance')}>
+              <button className="btn primary" disabled={advanceBlocked} title={advanceBlocked ? (cuttingBlocked ? 'Waiting for Cutting to complete' : 'Waiting for customer artwork approval') : undefined} onClick={() => setModal('advance')}>
                 Complete {STAGE_SHORT[order.stage]} → {nextStage && STAGE_SHORT[nextStage]}
               </button>
             )}
-            {order.stage === 'ready' && meta.permissions.includes('orders.deliver') && <button className="btn primary" onClick={() => setModal('deliver')}>Confirm dispatch</button>}
+            {order.stage === 'ready' && meta.permissions.includes('orders.deliver') && <button className="btn primary" disabled={!paymentComplete} title={!paymentComplete ? 'Complete payment before dispatch' : undefined} onClick={() => setModal('deliver')}>Confirm dispatch</button>}
           </>
         }
       />

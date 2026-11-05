@@ -146,7 +146,7 @@ export function DeliverModal({ order, onClose, onSaved }: { order: Order; onClos
       <form onSubmit={submit}>
         {error && <Notice tone="error" style={{ marginBottom: 14 }}>{error}</Notice>}
         {(order.balance ?? 0) > 0 && (
-          <Notice tone="warn" style={{ marginBottom: 14 }}>This order still has an outstanding balance of {fmtMoney(order.balance)}.</Notice>
+          <Notice tone="error" style={{ marginBottom: 14 }}>Dispatch is blocked until the outstanding balance of {fmtMoney(order.balance)} is paid.</Notice>
         )}
         <div className="form-grid">
           <Field label="Packed quantity *" hint={diff === 0 ? `Ordered: ${order.quantity}` : diff < 0 ? `Short by ${-diff}` : `Over by ${diff}`}>
