@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import bcrypt from 'bcryptjs';
 import { Types } from 'mongoose';
 import { z } from 'zod';
 import { Customer } from '../models/Customer';
@@ -7,6 +8,7 @@ import { User } from '../models/user.model';
 import { currentUser, requirePermission } from '../middleware/auth';
 import { assertObjectId, conflict, escapeRegex, notFound, pagination, parse } from '../lib/http';
 import { audit } from '../lib/audit';
+import { sendUserWelcomeEmail } from '../lib/mail';
 
 const router = Router();
 router.use(requirePermission('customers.view'));
@@ -19,6 +21,12 @@ const customerSchema = z.object({
   address: z.string().trim().max(300).optional().default(''),
   panNumber: z.string().trim().max(30).optional().default(''),
   notes: z.string().trim().max(2000).optional().default(''),
+});
+
+const createCustomerSchema = customerSchema.extend({
+  email: z.email('Email is required for the customer login').trim().toLowerCase(),
+  username: z.string().trim().toLowerCase().min(3, 'Username must be at least 3 characters').max(40).regex(/^[a-z0-9._-]+$/, 'Use only letters, numbers, dots, underscores or hyphens'),
+  password: z.string().min(8, 'Use at least 8 characters'),
 });
 
 /** Order count, value and payments per customer in one aggregation. */
@@ -86,10 +94,52 @@ router.get('/:id', async (req, res) => {
 
 router.post('/', requirePermission('customers.manage'), async (req, res) => {
   const me = currentUser(req);
-  const body = parse(customerSchema, req.body);
-  const customer = await Customer.create(body);
+  const body = parse(createCustomerSchema, req.body);
+  if (await User.exists({ email: body.email })) throw conflict('email: An account already exists with this email');
+  if (await User.exists({ username: body.username })) throw conflict('username: Username is already taken');
+  const { username, password, ...customerData } = body;
+  const customer = await Customer.create(customerData);
+  let user;
+  try {
+    user = await User.create({
+      name: body.contactPerson || body.name,
+      username,
+      email: body.email,
+      phone: body.phone,
+      role: 'customer',
+      customer: customer._id,
+      passwordHash: await bcrypt.hash(password, 10),
+    });
+  } catch (error) {
+    await customer.deleteOne();
+    throw error;
+  }
   await audit(me, 'customer.created', 'Customer', String(customer._id), `Added customer ${customer.name}`);
-  res.status(201).json({ customer: toDto(customer.toObject()) });
+  await audit(me, 'user.created', 'User', String(user._id), `Created customer account for ${customer.name}`);
+  let emailSent = false;
+  try {
+    await sendUserWelcomeEmail({
+      name: body.contactPerson || body.name,
+      username,
+      email: body.email,
+      phone: body.phone,
+      role: 'customer',
+      customer: body.name,
+      password,
+      customerDetails: {
+        contactPerson: body.contactPerson,
+        phone: body.phone,
+        email: body.email,
+        panNumber: body.panNumber,
+        address: body.address,
+        notes: body.notes,
+      },
+    });
+    emailSent = true;
+  } catch (error) {
+    console.error(`Customer welcome email failed for ${body.email}`, error);
+  }
+  res.status(201).json({ customer: toDto(customer.toObject()), user: { id: String(user._id), username: user.username, email: user.email }, emailSent });
 });
 
 router.patch('/:id', requirePermission('customers.manage'), async (req, res) => {

@@ -122,6 +122,8 @@ function CustomerForm({ customer, onClose, onSaved }: { customer: Customer | nul
     contactPerson: customer?.contactPerson ?? '',
     phone: customer?.phone ?? '',
     email: customer?.email ?? '',
+    username: '',
+    password: '',
     address: customer?.address ?? '',
     panNumber: customer?.panNumber ?? '',
     notes: customer?.notes ?? '',
@@ -135,8 +137,11 @@ function CustomerForm({ customer, onClose, onSaved }: { customer: Customer | nul
     setBusy(true);
     setError('');
     try {
-      await api(customer ? `/customers/${customer.id}` : '/customers', { method: customer ? 'PATCH' : 'POST', body: form });
-      toast(customer ? 'Customer updated' : `${form.name} added`);
+      const body = customer
+        ? { name: form.name, contactPerson: form.contactPerson, phone: form.phone, email: form.email, address: form.address, panNumber: form.panNumber, notes: form.notes }
+        : form;
+      const result = await api<{ emailSent?: boolean }>(customer ? `/customers/${customer.id}` : '/customers', { method: customer ? 'PATCH' : 'POST', body });
+      toast(customer ? 'Customer updated' : result.emailSent ? `${form.name} and login created; credentials emailed` : `${form.name} and login created, but the welcome email could not be sent`, result.emailSent === false ? 'error' : 'ok');
       onSaved();
     } catch (err) {
       setError(errorMessage(err));
@@ -152,7 +157,11 @@ function CustomerForm({ customer, onClose, onSaved }: { customer: Customer | nul
           <Field label="Customer / club name *" full><input required value={form.name} onChange={set('name')} /></Field>
           <Field label="Contact person"><input value={form.contactPerson} onChange={set('contactPerson')} /></Field>
           <Field label="Phone"><input value={form.phone} onChange={set('phone')} /></Field>
-          <Field label="Email"><input type="email" value={form.email} onChange={set('email')} /></Field>
+          <Field label={customer ? 'Email' : 'Email (login) *'}><input type="email" required={!customer} value={form.email} onChange={set('email')} /></Field>
+          {!customer && <>
+            <Field label="Username *" hint="Used for customer sign-in"><input required minLength={3} maxLength={40} pattern="[a-zA-Z0-9._-]+" value={form.username} onChange={set('username')} /></Field>
+            <Field label="Temporary password *" hint="At least 8 characters"><input type="password" required minLength={8} value={form.password} onChange={set('password')} /></Field>
+          </>}
           <Field label="PAN / VAT number"><input value={form.panNumber} onChange={set('panNumber')} /></Field>
           <Field label="Address" full><input value={form.address} onChange={set('address')} /></Field>
           <Field label="Notes" full><textarea rows={2} value={form.notes} onChange={set('notes')} /></Field>
