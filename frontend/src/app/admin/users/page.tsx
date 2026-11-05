@@ -23,6 +23,12 @@ function usernameFromName(name: string) {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '.').replace(/^\.+|\.+$/g, '').slice(0, 40);
 }
 
+type CustomerDetails = Pick<Customer, 'name' | 'contactPerson' | 'phone' | 'email' | 'address' | 'panNumber' | 'notes'>;
+
+const emptyCustomerDetails: CustomerDetails = {
+  name: '', contactPerson: '', phone: '', email: '', address: '', panNumber: '', notes: '',
+};
+
 export default function UsersPage() {
   const { user: me, meta } = useAuth();
   const toast = useToast();
@@ -145,19 +151,38 @@ function UserModal({ user, onClose, onSaved }: { user: UserRow | null; onClose: 
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [usernameEdited, setUsernameEdited] = useState(!!user);
+  const [customerDetails, setCustomerDetails] = useState<CustomerDetails>(emptyCustomerDetails);
   const self = user?.id === me.id;
+
+  useEffect(() => {
+    const linked = customers.data?.customers.find((customer) => customer.id === form.customer);
+    if (linked) {
+      setCustomerDetails({
+        name: linked.name,
+        contactPerson: linked.contactPerson,
+        phone: linked.phone,
+        email: linked.email,
+        address: linked.address,
+        panNumber: linked.panNumber,
+        notes: linked.notes,
+      });
+    }
+  }, [customers.data, form.customer]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
     setError('');
     const customer = form.role === 'customer' ? form.customer || null : null;
+    const details = form.role === 'customer' ? customerDetails : undefined;
     try {
       if (user) {
-        await api(`/users/${user.id}`, { method: 'PATCH', body: { name: form.name, username: form.username, phone: form.phone, role: form.role, customer, active: form.active } });
+        await api(`/users/${user.id}`, { method: 'PATCH', body: { name: form.name, username: form.username, phone: form.phone, role: form.role, customer, customerDetails: details, active: form.active } });
       } else {
-        const result = await api<{ emailSent: boolean }>('/users', { method: 'POST', body: { name: form.name, username: form.username, email: form.email, phone: form.phone, role: form.role, customer, password: form.password } });
-        toast(result.emailSent ? `Account created and login details emailed to ${form.email}` : 'Account created, but the welcome email could not be sent', result.emailSent ? 'ok' : 'error');
+        const result = await api<{ emailSent: boolean; customerEmailSent: boolean }>('/users', { method: 'POST', body: { name: form.name, username: form.username, email: form.email, phone: form.phone, role: form.role, customer, customerDetails: details, password: form.password } });
+        const customerEmail = result.customerEmailSent ? details?.email ?? '' : '';
+        const sentTo = [result.emailSent ? form.email : '', customerEmail && customerEmail.toLowerCase() !== form.email.toLowerCase() ? customerEmail : ''].filter(Boolean);
+        toast(sentTo.length ? `Account created. Registration details emailed to ${sentTo.join(' and ')}` : 'Account created, but the registration email could not be sent', sentTo.length ? 'ok' : 'error');
         onSaved();
         return;
       }
@@ -168,6 +193,10 @@ function UserModal({ user, onClose, onSaved }: { user: UserRow | null; onClose: 
       setBusy(false);
     }
   }
+
+  const setCustomer = (key: keyof CustomerDetails) => (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setCustomerDetails((current) => ({ ...current, [key]: event.target.value }));
+  };
 
   return (
     <Modal title={user ? `Edit ${user.name}` : 'Add user'} onClose={onClose}>
@@ -183,14 +212,21 @@ function UserModal({ user, onClose, onSaved }: { user: UserRow | null; onClose: 
             </select>
           </Field>
           <Field label="Phone"><input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></Field>
-          {form.role === 'customer' && (
-            <Field label="Linked customer account *" full hint="The customer can only see this account's orders">
-              <select required value={form.customer} onChange={(e) => setForm({ ...form, customer: e.target.value })}>
-                <option value="">Select customer…</option>
+          {form.role === 'customer' && <>
+            <Field label="Existing customer (optional)" full hint="Select one to update it, or leave blank to create a new customer record.">
+              <select value={form.customer} onChange={(e) => setForm({ ...form, customer: e.target.value })}>
+                <option value="">Create new customer…</option>
                 {customers.data?.customers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </Field>
-          )}
+            <Field label="Customer / club name *" full><input required value={customerDetails.name} onChange={setCustomer('name')} /></Field>
+            <Field label="Contact person"><input value={customerDetails.contactPerson} onChange={setCustomer('contactPerson')} /></Field>
+            <Field label="Phone"><input value={customerDetails.phone} onChange={setCustomer('phone')} /></Field>
+            <Field label="Email"><input type="email" value={customerDetails.email} onChange={setCustomer('email')} /></Field>
+            <Field label="PAN / VAT number"><input value={customerDetails.panNumber} onChange={setCustomer('panNumber')} /></Field>
+            <Field label="Address" full><input value={customerDetails.address} onChange={setCustomer('address')} /></Field>
+            <Field label="Notes" full><textarea rows={2} value={customerDetails.notes} onChange={setCustomer('notes')} /></Field>
+          </>}
           {!user && (
             <Field label="Temporary password *" full hint="At least 8 characters. Share it securely; the user can change it in Settings.">
               <input type="text" required minLength={8} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />

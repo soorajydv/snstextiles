@@ -7,7 +7,7 @@ import { currentUser, requirePermission } from '../middleware/auth';
 import { roleExists } from '../lib/roles';
 import { assertObjectId, badRequest, conflict, escapeRegex, notFound, pagination, parse } from '../lib/http';
 import { audit } from '../lib/audit';
-import { sendUserWelcomeEmail } from '../lib/mail';
+import { sendCustomerRegistrationEmail, sendUserWelcomeEmail } from '../lib/mail';
 
 const router = Router();
 router.use(requirePermission('users.manage'));
@@ -27,12 +27,31 @@ const toDto = (u: Record<string, any>) => ({
   createdAt: u.createdAt,
 });
 
-async function checkCustomerLink(role: string, customer: string | null | undefined) {
+const customerDetailsSchema = z.object({
+  name: z.string().trim().min(2, 'Customer / club name is required'),
+  contactPerson: z.string().trim().max(120).optional().default(''),
+  phone: z.string().trim().max(40).optional().default(''),
+  email: z.union([z.email(), z.literal('')]).optional().default(''),
+  address: z.string().trim().max(300).optional().default(''),
+  panNumber: z.string().trim().max(30).optional().default(''),
+  notes: z.string().trim().max(2000).optional().default(''),
+});
+
+async function resolveCustomerLink(
+  role: string,
+  customer: string | null | undefined,
+  details: z.infer<typeof customerDetailsSchema> | undefined,
+) {
   if (role !== 'customer') return null;
-  if (!customer) throw badRequest('customer: Customer accounts must be linked to a customer record');
-  assertObjectId(customer, 'Customer');
-  if (!(await Customer.exists({ _id: customer }))) throw badRequest('customer: Customer record not found');
-  return customer;
+  if (customer) {
+    assertObjectId(customer, 'Customer');
+    if (!(await Customer.exists({ _id: customer }))) throw badRequest('customer: Customer record not found');
+    if (details) await Customer.findByIdAndUpdate(customer, details, { runValidators: true });
+    return customer;
+  }
+  if (!details) throw badRequest('customer: Add customer details for customer accounts');
+  const created = await Customer.create(details);
+  return String(created._id);
 }
 
 router.get('/', async (req, res) => {
@@ -59,6 +78,7 @@ const createSchema = z.object({
   role: z.string().trim().toLowerCase().min(2).max(40),
   phone: z.string().trim().max(30).optional().default(''),
   customer: z.string().nullish(),
+  customerDetails: customerDetailsSchema.optional(),
 });
 
 router.post('/', async (req, res) => {
@@ -66,7 +86,8 @@ router.post('/', async (req, res) => {
   const body = parse(createSchema, req.body);
   if (!(await roleExists(body.role))) throw badRequest('role: Role not found');
   if (await User.exists({ username: body.username })) throw conflict('username: Username is already taken');
-  const customer = await checkCustomerLink(body.role, body.customer);
+  const createsCustomer = body.role === 'customer' && !body.customer;
+  const customer = await resolveCustomerLink(body.role, body.customer, body.customerDetails);
   const user = await User.create({
     name: body.name,
     username: body.username,
@@ -77,7 +98,8 @@ router.post('/', async (req, res) => {
     passwordHash: await bcrypt.hash(body.password, 10),
   });
   await audit(me, 'user.created', 'User', String(user._id), `Created ${body.role} account for ${body.name}`);
-  const saved = await User.findById(user._id).populate('customer', 'name').lean();
+  const saved = await User.findById(user._id).populate('customer').lean();
+  const customerRecord = saved?.customer && typeof saved.customer === 'object' && 'email' in saved.customer ? saved.customer as Record<string, any> : null;
   let emailSent = false;
   try {
     await sendUserWelcomeEmail({
@@ -88,12 +110,40 @@ router.post('/', async (req, res) => {
       role: body.role,
       customer: saved?.customer && typeof saved.customer === 'object' && 'name' in saved.customer ? String(saved.customer.name) : '',
       password: body.password,
+      customerDetails: customerRecord ? {
+        contactPerson: String(customerRecord.contactPerson ?? ''),
+        phone: String(customerRecord.phone ?? ''),
+        email: String(customerRecord.email ?? ''),
+        panNumber: String(customerRecord.panNumber ?? ''),
+        address: String(customerRecord.address ?? ''),
+        notes: String(customerRecord.notes ?? ''),
+      } : undefined,
     });
     emailSent = true;
   } catch (error) {
     console.error(`Welcome email failed for ${body.email}`, error);
   }
-  res.status(201).json({ user: toDto(saved!), emailSent });
+  let customerEmailSent = false;
+  if (createsCustomer && customerRecord?.email && String(customerRecord.email).toLowerCase() !== body.email.toLowerCase()) {
+    try {
+      await sendCustomerRegistrationEmail({
+        name: String(customerRecord.name ?? body.name),
+        contactPerson: String(customerRecord.contactPerson ?? ''),
+        phone: String(customerRecord.phone ?? ''),
+        email: String(customerRecord.email),
+        panNumber: String(customerRecord.panNumber ?? ''),
+        address: String(customerRecord.address ?? ''),
+        notes: String(customerRecord.notes ?? ''),
+        username: body.username,
+        loginEmail: body.email,
+        password: body.password,
+      });
+      customerEmailSent = true;
+    } catch (error) {
+      console.error(`Customer registration email failed for ${customerRecord.email}`, error);
+    }
+  }
+  res.status(201).json({ user: toDto(saved!), emailSent, customerEmailSent });
 });
 
 const updateSchema = z.object({
@@ -103,6 +153,7 @@ const updateSchema = z.object({
   phone: z.string().trim().max(30).optional(),
   active: z.boolean().optional(),
   customer: z.string().nullish(),
+  customerDetails: customerDetailsSchema.optional(),
 });
 
 router.patch('/:id', async (req, res) => {
@@ -118,7 +169,7 @@ router.patch('/:id', async (req, res) => {
   }
   const role = body.role ?? user.role;
   const customerInput = body.customer === undefined ? (user.customer ? String(user.customer) : null) : body.customer;
-  const customer = await checkCustomerLink(role, customerInput);
+  const customer = await resolveCustomerLink(role, customerInput, body.customerDetails);
   if (body.name !== undefined) user.name = body.name;
   if (body.username !== undefined) user.username = body.username;
   if (body.phone !== undefined) user.phone = body.phone;
