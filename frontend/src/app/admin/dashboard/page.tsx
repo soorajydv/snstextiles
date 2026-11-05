@@ -40,6 +40,9 @@ export default function DashboardPage() {
   if (error) return <Notice tone="error">{error}</Notice>;
   if (!data) return <Spinner />;
   const { counts, byStage } = data;
+  const recentOrders = recentOrdersSort === 'deadline'
+    ? [...data.recentOrders].sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
+    : data.recentOrders;
   const workStages: Stage[] = ['design', 'printing', 'stitching', 'finishing', 'ready'];
   const maxStage = Math.max(1, ...workStages.map((s) => byStage[s]));
 
@@ -72,12 +75,12 @@ export default function DashboardPage() {
             </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <button className="link-btn" type="button" onClick={() => setRecentOrdersSort((sort) => sort === 'deadline' ? 'recent' : 'deadline')}>
-                    {recentOrdersSort === 'deadline' ? 'Nearest deadline' : 'Recently added'}
+                    Viewing as: {recentOrdersSort === 'deadline' ? 'Nearest deadline' : 'Recently added'}
                   </button>
                   <Link className="link-btn" href="/orders">View all →</Link>
                 </div>
           </div>
-          <OrderTable orders={data.recentOrders} showMoney={false} compact showRemaining={recentOrdersSort === 'deadline'} />
+          <OrderTable orders={recentOrders} showMoney={false} compact showRemaining={recentOrdersSort === 'deadline'} />
         </section>
 
         <section className="card">
