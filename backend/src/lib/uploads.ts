@@ -9,6 +9,7 @@ import { badRequest } from './http';
 export const ALLOWED_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.webp', '.gif', '.pdf', '.ai', '.eps', '.svg', '.psd', '.cdr'];
 const INLINE_MIME = ['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'application/pdf'];
 const AVATAR_MIME = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
+const ORDER_IMAGE_MIME = ['image/png', 'image/jpeg'];
 
 fs.mkdirSync(env.uploadDir, { recursive: true });
 
@@ -25,8 +26,8 @@ export const upload = multer({
   limits: { fileSize: env.maxUploadBytes, files: 12 },
   fileFilter: (_req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
-    if (['advanceProof', 'proof', 'playerListImage'].includes(file.fieldname) && !AVATAR_MIME.includes(file.mimetype)) {
-      cb(badRequest(`${file.fieldname}: Only PNG, JPG, JPEG or WEBP images are allowed`));
+    if (['jerseyImage', 'advanceProof', 'playerListImage'].includes(file.fieldname) && !ORDER_IMAGE_MIME.includes(file.mimetype)) {
+      cb(badRequest(`${file.fieldname}: Only PNG, JPG or JPEG images are allowed`));
       return;
     }
     if (!ALLOWED_EXTENSIONS.includes(ext)) {

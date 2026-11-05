@@ -72,7 +72,7 @@ export default function DashboardPage() {
             </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <button className="link-btn" type="button" onClick={() => setRecentOrdersSort((sort) => sort === 'deadline' ? 'recent' : 'deadline')}>
-                    {recentOrdersSort === 'deadline' ? 'Recently added' : 'Nearest deadline'}
+                    {recentOrdersSort === 'deadline' ? 'Nearest deadline' : 'Recently added'}
                   </button>
                   <Link className="link-btn" href="/orders">View all →</Link>
                 </div>

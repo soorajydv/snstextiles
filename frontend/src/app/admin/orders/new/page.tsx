@@ -10,11 +10,12 @@ import { LocalFilePreview } from '@/components/LocalFilePreview';
 import { fmtMoney, toInputDate } from '@/lib/format';
 import type { Customer, Order, Player } from '@/lib/types';
 import { appPath } from '@/lib/paths';
-import { AVATAR_EXTENSIONS, DESIGN_EXTENSIONS, JERSEY_EXTENSIONS, MAX_UPLOAD_BYTES, PLAYER_LIST_EXTENSIONS, validateUploadFile } from '@/lib/uploads';
+import { DESIGN_EXTENSIONS, MAX_UPLOAD_BYTES, validateUploadFile } from '@/lib/uploads';
 
 const NEW_CUSTOMER = '__new__';
 const CUSTOM_STYLE = '__custom_style__';
 const MAX_ROWS_RENDERED = 300;
+const ORDER_IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg'];
 
 const emptyPlayer = (sleeve: string): Player => ({ name: '', number: '', sleeve, jerseySize: '', shortsSize: '', trouserSize: '' });
 
@@ -99,7 +100,7 @@ export default function NewOrderPage() {
 
   function selectJerseyImage(file: File | undefined) {
     if (!file) { setJerseyImage(null); return; }
-    const message = validateUploadFile(file, { extensions: JERSEY_EXTENSIONS, label: 'Jersey image' });
+    const message = validateUploadFile(file, { extensions: ORDER_IMAGE_EXTENSIONS, label: 'Jersey image' });
     setUploadErrors((current) => ({ ...current, jerseyImage: message }));
     setJerseyImage(message ? null : file);
     if (message) toast(message, 'error');
@@ -116,7 +117,7 @@ export default function NewOrderPage() {
 
   function selectAdvanceProof(file: File | undefined) {
     if (!file) { setAdvanceProof(null); return; }
-    const message = validateUploadFile(file, { maxBytes: MAX_UPLOAD_BYTES, extensions: AVATAR_EXTENSIONS, label: 'Advance proof image' });
+    const message = validateUploadFile(file, { maxBytes: MAX_UPLOAD_BYTES, extensions: ORDER_IMAGE_EXTENSIONS, label: 'Advance proof image' });
     setUploadErrors((current) => ({ ...current, advanceProof: message }));
     setAdvanceProof(message ? null : file);
     if (message) toast(message, 'error');
@@ -124,7 +125,7 @@ export default function NewOrderPage() {
 
   function selectPlayerListImage(file: File | undefined) {
     if (!file) { setPlayerListImage(null); return; }
-    const message = validateUploadFile(file, { maxBytes: MAX_UPLOAD_BYTES, extensions: PLAYER_LIST_EXTENSIONS, label: 'Player list image' });
+    const message = validateUploadFile(file, { maxBytes: MAX_UPLOAD_BYTES, extensions: ORDER_IMAGE_EXTENSIONS, label: 'Player list image' });
     setUploadErrors((current) => ({ ...current, playerListImage: message }));
     setPlayerListImage(message ? null : file);
     if (message) toast(message, 'error');
@@ -212,8 +213,8 @@ export default function NewOrderPage() {
         <section className="card">
           <h2 style={{ marginBottom: 16 }}>Customer & kit</h2>
           <div className="form-grid">
-            <Field label="Jersey image" hint="PNG, JPG, WEBP, GIF or PDF · up to 15 MB" error={uploadErrors.jerseyImage}>
-              <input type="file" accept="image/png,image/jpeg,image/webp,image/gif,.pdf" onChange={(e) => { selectJerseyImage(e.target.files?.[0]); e.currentTarget.value = ''; }} />
+            <Field label="Jersey image" hint="PNG, JPG or JPEG · up to 15 MB" error={uploadErrors.jerseyImage}>
+              <input type="file" accept="image/png,image/jpeg" onChange={(e) => { selectJerseyImage(e.target.files?.[0]); e.currentTarget.value = ''; }} />
               {jerseyImage && <LocalFilePreview file={jerseyImage} />}
             </Field>
             {!isCustomer && (
@@ -284,8 +285,8 @@ export default function NewOrderPage() {
                     </select>
                   </div>
                 </Field>
-                <Field label="Advance proof image" hint={Number(advance) <= 0 ? 'Enter an advance amount first' : advanceMethod === 'Cash' ? 'Optional for cash advances · PNG, JPG, WEBP or GIF' : 'Required for non-cash advances · PNG, JPG, WEBP or GIF'} error={uploadErrors.advanceProof}>
-                  <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" disabled={Number(advance) <= 0} onChange={(e) => { selectAdvanceProof(e.target.files?.[0]); e.currentTarget.value = ''; }} />
+                <Field label="Advance proof image" hint={Number(advance) <= 0 ? 'Enter an advance amount first' : advanceMethod === 'Cash' ? 'Optional for cash advances · PNG, JPG or JPEG' : 'Required for non-cash advances · PNG, JPG or JPEG'} error={uploadErrors.advanceProof}>
+                  <input type="file" accept="image/png,image/jpeg" disabled={Number(advance) <= 0} onChange={(e) => { selectAdvanceProof(e.target.files?.[0]); e.currentTarget.value = ''; }} />
                   {advanceProof && <LocalFilePreview file={advanceProof} />}
                 </Field>
               </>
@@ -308,8 +309,8 @@ export default function NewOrderPage() {
           </div>
           {playerListMode === 'image' && (
             <div style={{ marginTop: 14, maxWidth: 520 }}>
-              <Field label="Player list picture *" hint="Clear, readable image showing player names, jersey numbers and sizes." error={uploadErrors.playerListImage}>
-                <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={(e) => { selectPlayerListImage(e.target.files?.[0]); e.currentTarget.value = ''; }} />
+              <Field label="Player list picture *" hint="PNG, JPG or JPEG · clear, readable image showing player names, jersey numbers and sizes." error={uploadErrors.playerListImage}>
+                <input type="file" accept="image/png,image/jpeg" onChange={(e) => { selectPlayerListImage(e.target.files?.[0]); e.currentTarget.value = ''; }} />
                 {playerListImage && <LocalFilePreview file={playerListImage} />}
               </Field>
             </div>
