@@ -492,7 +492,10 @@ function UploadArtworkModal({ order, onClose, onSaved }: { order: Order; onClose
   }
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!file) return;
+    if (!file) {
+      setFileError('Please select an artwork file.');
+      return;
+    }
     setBusy(true);
     const form = new FormData();
     form.append('file', file);
@@ -513,7 +516,7 @@ function UploadArtworkModal({ order, onClose, onSaved }: { order: Order; onClose
         {order.approved && <Notice tone="warn" style={{ marginBottom: 14 }}>v{order.currentVersion} is already approved. Uploading a new version will require approval again.</Notice>}
         <div className="form-grid">
           <Field label="Artwork file *" full hint="PNG/JPG previews best. PDF, AI, EPS, SVG, PSD and CDR are also accepted · up to 15 MB" error={fileError}>
-            <input type="file" required accept="image/png,image/jpeg,image/webp,image/gif,.pdf,.ai,.eps,.svg,.psd,.cdr" onChange={(e) => { selectFile(e.target.files?.[0]); e.currentTarget.value = ''; }} />
+            <input type="file" accept="image/png,image/jpeg,image/webp,image/gif,.pdf,.ai,.eps,.svg,.psd,.cdr" onChange={(e) => selectFile(e.target.files?.[0])} />
             {file && <LocalFilePreview file={file} />}
           </Field>
           <Field label="What changed?" full>
