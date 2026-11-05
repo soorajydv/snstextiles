@@ -10,7 +10,7 @@ import { Badge, ConfirmModal, Empty, Notice, PageHeader, Spinner, StatCard, erro
 import { RecordPaymentModal } from '@/components/OrderModals';
 import { fmtDate, fmtMoney } from '@/lib/format';
 import type { Customer, Order, Payment } from '@/lib/types';
-import { appPath } from '@/lib/paths';
+import { appPath, assetPath } from '@/lib/paths';
 
 function CustomerPicker({ customers, selectedId, onSelect }: { customers: Customer[]; selectedId: string | null; onSelect: (id: string) => void }) {
   const selected = customers.find((customer) => customer.id === selectedId);
@@ -197,7 +197,7 @@ function Billing() {
                       <td>{p.customer.name}</td>
                       <td>{p.method}</td>
                       <td>{p.reference || '—'}</td>
-                      <td>{p.proof ? <a className="link-btn" href={p.proof.url} target="_blank" rel="noreferrer">View proof</a> : '—'}</td>
+                      <td>{p.proof ? <a className="link-btn" href={assetPath(p.proof.url)} target="_blank" rel="noreferrer">View proof</a> : '—'}</td>
                       <td className="num"><strong>{fmtMoney(p.amount)}</strong></td>
                       <td>{p.recordedBy || '—'}</td>
                       {meta.permissions.includes('payments.delete') && <td><button className="btn small danger" onClick={() => setPaymentToDelete(p)}>Delete</button></td>}

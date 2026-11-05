@@ -11,7 +11,7 @@ import { useTheme } from './ThemeProvider';
 import { Icon, type IconName } from './Icon';
 import { PwaInstallButton } from './PwaInstallButton';
 import { ConfirmModal } from './ui';
-import { appPath } from '@/lib/paths';
+import { appPath, assetPath } from '@/lib/paths';
 
 type NavItem = { href: string; label: string; icon: IconName; permission?: Permission };
 type NotificationItem = { id: string; type?: string; title: string; body: string; href: string; read: boolean };
@@ -165,7 +165,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className={`layout ${collapsed ? 'sidebar-collapsed' : ''}`}>
       <aside className={`sidebar ${open ? 'open' : ''}`}>
         <div className="brand">
-          {settings.logoUrl ? <img className="brand-logo" src={appPath(settings.logoUrl)} alt="Business logo" /> : <div className="brand-mark">S&amp;S</div>}
+          {settings.logoUrl ? <img className="brand-logo" src={assetPath(settings.logoUrl)} alt="Business logo" /> : <div className="brand-mark">S&amp;S</div>}
           <div className="brand-copy">
             <div className="brand-name">{settings.businessName.replace(/ PVT LTD$/i, '')}</div>
             <div className="brand-sub">{user.role === 'customer' ? 'CUSTOMER PORTAL' : 'FACTORY MANAGEMENT'}</div>
@@ -217,7 +217,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <small>{roleLabel(user.role, meta.roles)}</small>
               </div>
               <button className="avatar" type="button" onClick={() => setUserMenuOpen((value) => !value)} aria-label="Open account menu" aria-expanded={userMenuOpen} title="Account menu">
-                {user.avatarUrl ? <img src={user.avatarUrl} alt="" /> : initials(user.name)}
+                {user.avatarUrl ? <img src={assetPath(user.avatarUrl)} alt="" /> : initials(user.name)}
               </button>
               {userMenuOpen && (
                 <div className="user-menu" role="menu">

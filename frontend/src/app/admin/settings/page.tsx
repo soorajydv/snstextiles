@@ -7,7 +7,7 @@ import { useToast } from '@/components/Toast';
 import { LocalFilePreview } from '@/components/LocalFilePreview';
 import { Field, Notice, PageHeader, errorMessage } from '@/components/ui';
 import { AVATAR_EXTENSIONS, MAX_AVATAR_BYTES, validateUploadFile } from '@/lib/uploads';
-import { appPath } from '@/lib/paths';
+import { assetPath } from '@/lib/paths';
 
 export default function SettingsPage() {
   const { meta, settings, refreshSettings } = useAuth();
@@ -89,7 +89,7 @@ export default function SettingsPage() {
           <section className="card">
             {error && <Notice tone="error" style={{ marginBottom: 14 }}>{error}</Notice>}
             <div className="profile-avatar-editor" style={{ marginBottom: 20 }}>
-              <div className="profile-avatar-preview business-logo-preview">{settings.logoUrl ? <img src={appPath(settings.logoUrl)} alt="Business logo" /> : 'SNS'}</div>
+              <div className="profile-avatar-preview business-logo-preview">{settings.logoUrl ? <img src={assetPath(settings.logoUrl)} alt="Business logo" /> : 'SNS'}</div>
               <div><strong>Business logo</strong><div className="card-sub">Shown in the sidebar and business documents. PNG, JPG, WEBP or GIF · up to 5 MB</div>{logoFile && <LocalFilePreview file={logoFile} />}<div className="form-actions" style={{ marginTop: 8 }}><label className="btn small" style={{ cursor: logoBusy ? 'wait' : 'pointer' }}>{logoBusy ? 'Uploading…' : 'Choose image'}<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden disabled={logoBusy} onChange={(e) => { void uploadLogo(e.target.files?.[0]); e.currentTarget.value = ''; }} /></label>{settings.logoUrl && <button type="button" className="btn small" onClick={removeLogo} disabled={logoBusy}>Remove</button>}</div>{logoError && <div className="error-text">{logoError}</div>}</div>
             </div>
             <div className="form-grid">

@@ -6,7 +6,7 @@ import { AuthProvider, useAuth } from '@/components/AuthProvider';
 import { Notice, Spinner } from '@/components/ui';
 import { fmtDate, fmtMoney } from '@/lib/format';
 import type { Order, Payment } from '@/lib/types';
-import { appPath } from '@/lib/paths';
+import { assetPath } from '@/lib/paths';
 
 function InvoiceView() {
   const { id } = useParams<{ id: string }>();
@@ -32,7 +32,7 @@ function InvoiceView() {
       <div className="print-page">
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 20, marginBottom: 30 }}>
           <div>
-            {settings.logoUrl && <img src={appPath(settings.logoUrl)} alt="Business logo" style={{ width: 80, height: 54, objectFit: 'contain', marginBottom: 8 }} />}
+            {settings.logoUrl && <img src={assetPath(settings.logoUrl)} alt="Business logo" style={{ width: 80, height: 54, objectFit: 'contain', marginBottom: 8 }} />}
             <div style={{ fontSize: 20, fontWeight: 800 }}>{settings.businessName}</div>
             <div style={{ fontSize: 12, lineHeight: 1.7, color: '#56645b' }}>
               {settings.address && <>{settings.address}<br /></>}

@@ -12,7 +12,7 @@ import { DeliverModal, EditOrderModal, RecordPaymentModal, TextPromptModal } fro
 import { STAGE_ORDER, STAGE_SHORT, canCompleteStage, canSeeMoney, fileSize, fmtDate, fmtDateTime, fmtMoney } from '@/lib/format';
 import type { Order, Payment, StoredFile } from '@/lib/types';
 import { DESIGN_EXTENSIONS, validateUploadFile } from '@/lib/uploads';
-import { appPath } from '@/lib/paths';
+import { assetPath, appPath } from '@/lib/paths';
 
 type ModalKind = null | 'edit' | 'payment' | 'deliver' | 'advance' | 'sendBack' | 'feedback' | 'upload' | 'approve';
 
@@ -161,10 +161,10 @@ export default function OrderDetailPage() {
               <div className="artwork-grid">
                 {[...order.artworks].reverse().map((a) => (
                   <div key={a.version} className={`artwork ${a.version === order.currentVersion ? 'current' : ''}`}>
-                    <a className="thumb" href={a.file.url} target="_blank" rel="noreferrer">
+                    <a className="thumb" href={assetPath(a.file.url)} target="_blank" rel="noreferrer">
                       {a.file.mimeType.startsWith('image/') && a.file.mimeType !== 'image/svg+xml' ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={a.file.url} alt={`Artwork version ${a.version}`} />
+                        <img src={assetPath(a.file.url)} alt={`Artwork version ${a.version}`} />
                       ) : (
                         <span>{a.file.originalName}</span>
                       )}
@@ -283,7 +283,7 @@ export default function OrderDetailPage() {
                   <h3 style={{ marginTop: 18 }}>Payments</h3>
                   {payments.data.payments.map((p) => (
                     <div className="kv" key={p.id}>
-                      <span>{fmtDate(p.receivedAt)} · {p.method}{p.reference ? ` · ${p.reference}` : ''}{p.proof ? <> · <a className="link-btn" href={p.proof.url} target="_blank" rel="noreferrer">Proof</a></> : ''}</span>
+                      <span>{fmtDate(p.receivedAt)} · {p.method}{p.reference ? ` · ${p.reference}` : ''}{p.proof ? <> · <a className="link-btn" href={assetPath(p.proof.url)} target="_blank" rel="noreferrer">Proof</a></> : ''}</span>
                       <strong>{fmtMoney(p.amount)}</strong>
                     </div>
                   ))}
@@ -395,9 +395,9 @@ function FileList({ files }: { files: StoredFile[] }) {
   return (
     <div className="file-list">
       {files.map((f) => (
-        <a key={f.storedName} className="file-link" href={f.url} target="_blank" rel="noreferrer">
+        <a key={f.storedName} className="file-link" href={assetPath(f.url)} target="_blank" rel="noreferrer">
           {f.mimeType.startsWith('image/') && f.mimeType !== 'image/svg+xml'
-            ? <img className="file-thumb" src={f.url} alt={f.originalName} />
+            ? <img className="file-thumb" src={assetPath(f.url)} alt={f.originalName} />
             : <span aria-hidden>{f.kind === 'jersey' ? '👕' : '📎'}</span>}
           <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.originalName}</span>
           <span className="muted small">{f.kind === 'jersey' ? 'Jersey image · ' : f.kind === 'player-list' ? 'Player list · ' : ''}{fileSize(f.size)}</span>

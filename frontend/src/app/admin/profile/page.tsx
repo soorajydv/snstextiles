@@ -8,6 +8,7 @@ import { LocalFilePreview } from '@/components/LocalFilePreview';
 import { ConfirmModal, Field, Notice, PageHeader, PasswordField, errorMessage } from '@/components/ui';
 import { roleLabel } from '@/lib/format';
 import { AVATAR_EXTENSIONS, MAX_AVATAR_BYTES, validateUploadFile } from '@/lib/uploads';
+import { assetPath } from '@/lib/paths';
 
 export default function ProfilePage() {
   const { user, meta, refreshUser, logout } = useAuth();
@@ -82,7 +83,7 @@ export default function ProfilePage() {
           <h2>Profile information</h2>
           <div className="card-sub" style={{ marginBottom: 16 }}>These details are shown to your team.</div>
           <div className="profile-avatar-editor">
-            <div className="profile-avatar-preview">{user.avatarUrl ? <img src={user.avatarUrl} alt="Profile avatar" /> : user.name.slice(0, 2).toUpperCase()}</div>
+            <div className="profile-avatar-preview">{user.avatarUrl ? <img src={assetPath(user.avatarUrl)} alt="Profile avatar" /> : user.name.slice(0, 2).toUpperCase()}</div>
             <div><strong>Profile avatar</strong><div className="card-sub">PNG, JPG, WEBP or GIF · up to 5 MB</div>{avatarFile && <LocalFilePreview file={avatarFile} />}<div className="form-actions" style={{ marginTop: 8 }}><label className="btn small" style={{ cursor: avatarBusy ? 'wait' : 'pointer' }}>{avatarBusy ? 'Uploading…' : 'Choose image'}<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden disabled={avatarBusy} onChange={(e) => { void uploadAvatar(e.target.files?.[0]); e.currentTarget.value = ''; }} /></label>{user.avatarUrl && <button type="button" className="btn small" onClick={removeAvatar} disabled={avatarBusy}>Remove</button>}</div>{avatarError && <div className="error-text">{avatarError}</div>}</div>
           </div>
           <form onSubmit={saveProfile} className="form-grid">
