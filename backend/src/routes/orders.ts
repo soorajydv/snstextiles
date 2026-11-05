@@ -367,7 +367,7 @@ router.post('/:id/advance', requirePermission('orders.stage.complete'), async (r
     throw conflict('Printing cannot start until the customer approves the latest artwork version');
   }
   const cuttingStatus = order.cuttingStatus ?? (from === 'design' ? 'pending' : 'completed');
-  if (from === 'printing' && cuttingStatus !== 'completed') {
+  if (from === 'design' && cuttingStatus !== 'completed') {
     throw conflict('Printing cannot start until Cutting marks this order complete');
   }
   order.stage = to;
