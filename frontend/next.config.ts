@@ -15,6 +15,7 @@ const nextConfig: NextConfig = {
       { source: `${APP_BASE_PATH}/manifest.webmanifest`, destination: '/manifest.webmanifest' },
       { source: `${APP_BASE_PATH}/sw.js`, destination: '/sw.js' },
       { source: `${APP_BASE_PATH}/icon.svg`, destination: '/icon.svg' },
+      { source: `${APP_BASE_PATH}/sns-favicon.png`, destination: '/sns-favicon.png' },
       { source: APP_BASE_PATH, destination: '/admin' },
       { source: `${APP_BASE_PATH}/:path*`, destination: '/admin/:path*' },
     ];
