@@ -277,7 +277,7 @@ export default function OrderDetailPage() {
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 14 }}>
                 {meta.permissions.includes('payments.record') && (order.balance ?? 0) > 0 && <button className="btn small primary" onClick={() => setModal('payment')}>＋ Record payment</button>}
                 {meta.permissions.includes('orders.invoice') && !order.invoice?.number && !!order.totalAmount && <button className="btn small" disabled={busy} onClick={issueInvoice}>Issue invoice</button>}
-                {(order.invoice?.number || !!order.totalAmount) && <Link className="btn small" href={`/invoice/${order.id}`} target="_blank">{order.invoice?.number ? 'View invoice' : 'View quotation'}</Link>}
+                <Link className="btn small" href={`/invoice/${order.id}`} target="_blank">{order.invoice?.number ? 'View invoice' : 'View quotation'}</Link>
               </div>
               {payments.data && payments.data.payments.length > 0 && (
                 <>

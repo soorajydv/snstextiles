@@ -175,7 +175,7 @@ function Billing() {
                       <td className="num">{fmtMoney(o.amountPaid)}</td>
                       <td className="num">{fmtMoney(o.balance)}</td>
                       <td><Badge>{payState(o)}</Badge></td>
-                      <td>{!!o.totalAmount && <Link className="btn small" href={`/invoice/${o.id}`} target="_blank">{o.invoice?.number ? 'Invoice' : 'Quotation'}</Link>}</td>
+                      <td><Link className="btn small" href={`/invoice/${o.id}`} target="_blank">{o.invoice?.number ? 'Invoice' : 'Quotation'}</Link></td>
                     </tr>
                   ))}
                 </tbody>

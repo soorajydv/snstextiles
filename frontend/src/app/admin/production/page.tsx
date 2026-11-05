@@ -6,7 +6,7 @@ import { api, useApi } from '@/lib/api';
 import { useAuth } from '@/components/AuthProvider';
 import { useToast } from '@/components/Toast';
 import { Badge, ConfirmModal, DueDate, Empty, Notice, PageHeader, Spinner, errorMessage } from '@/components/ui';
-import { STAGE_ORDER, STAGE_SHORT, canCompleteStage, initials } from '@/lib/format';
+import { STAGE_ORDER, STAGE_SHORT, canCompleteStage, fmtMoney, initials } from '@/lib/format';
 import type { Order, Role, Stage } from '@/lib/types';
 
 type BoardColumn = Stage | 'cutting';
@@ -101,6 +101,11 @@ export default function ProductionPage() {
                         <br />
                         Due <DueDate order={o} />
                       </div>
+                      {stage === 'ready' && o.totalAmount !== undefined && (
+                        <div className="job-meta" style={{ marginTop: 0 }}>
+                          Payment: {fmtMoney(o.amountPaid)} paid · <strong className={o.balance ? 'amber' : 'green'}>{o.balance ? `${fmtMoney(o.balance)} due` : 'Paid in full'}</strong>
+                        </div>
+                      )}
                       <div className="bar-label">
                         <span>{o.currentVersion ? `Artwork v${o.currentVersion}` : 'No artwork yet'}</span>
                         <span>{o.approved ? 'Approved' : 'Approval pending'}</span>
@@ -121,7 +126,7 @@ export default function ProductionPage() {
                         </Link>
                       )}
                       {stage === 'ready' && meta.permissions.includes('orders.deliver') && (
-                        <Link className="btn small primary block" style={{ marginTop: 10 }} href="/delivery">Dispatch →</Link>
+                        <Link className="btn small primary block" style={{ marginTop: 10 }} href="/delivery">{o.balance ? 'Payment pending →' : 'Dispatch →'}</Link>
                       )}
                     </div>
                   );
