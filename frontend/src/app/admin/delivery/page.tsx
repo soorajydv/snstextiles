@@ -5,7 +5,7 @@ import { AppLink as Link } from '@/components/AppLink';
 import { useApi } from '@/lib/api';
 import { useAuth } from '@/components/AuthProvider';
 import { Badge, DueDate, Empty, Notice, PageHeader, Spinner, StatCard } from '@/components/ui';
-import { DeliverModal } from '@/components/OrderModals';
+import { DeliverModal, RecordPaymentModal } from '@/components/OrderModals';
 import { canSeeMoney, fmtDate, fmtMoney } from '@/lib/format';
 import type { Order } from '@/lib/types';
 
@@ -17,7 +17,9 @@ export default function DeliveryPage() {
   const finishing = useApi<List>('/orders?stage=finishing&limit=200');
   const delivered = useApi<List>(user.role === 'finishing' ? null : '/orders?stage=delivered&limit=15');
   const [dispatching, setDispatching] = useState<Order | null>(null);
+  const [paying, setPaying] = useState<Order | null>(null);
   const money = canSeeMoney(user.role, meta.permissions);
+  const canRecordPayment = meta.permissions.includes('payments.record');
 
   const queue = [...(ready.data?.orders ?? []), ...(finishing.data?.orders ?? [])];
 
@@ -47,7 +49,9 @@ export default function DeliveryPage() {
                     <td><DueDate order={o} /></td>
                     {money && <td className={`num ${o.balance ? 'amber' : ''}`}>{fmtMoney(o.balance)}</td>}
                     <td>
-                      {o.stage === 'ready' && meta.permissions.includes('orders.deliver') && !!o.totalAmount && (o.balance ?? 0) <= 0 ? (
+                      {o.stage === 'ready' && canRecordPayment && (o.balance ?? 0) > 0 ? (
+                        <button className="btn small" onClick={() => setPaying(o)}>Record payment</button>
+                      ) : o.stage === 'ready' && meta.permissions.includes('orders.deliver') && !!o.totalAmount && (o.balance ?? 0) <= 0 ? (
                         <button className="btn small primary" onClick={() => setDispatching(o)}>Confirm dispatch</button>
                       ) : o.stage === 'ready' && (o.balance ?? 0) > 0 ? (
                         <span className="muted small">Payment pending</span>
@@ -100,6 +104,17 @@ export default function DeliveryPage() {
             setDispatching(null);
             ready.reload();
             delivered.reload();
+          }}
+        />
+      )}
+      {paying && (
+        <RecordPaymentModal
+          orders={[paying]}
+          initialOrderId={paying.id}
+          onClose={() => setPaying(null)}
+          onSaved={() => {
+            setPaying(null);
+            ready.reload();
           }}
         />
       )}
