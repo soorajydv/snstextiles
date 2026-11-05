@@ -19,7 +19,12 @@ export default function AttendancePage() {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const [page, setPage] = useState(1);
+  const [now, setNow] = useState(() => Date.now());
   useEffect(() => setPage(1), [search, status]);
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
   const attendanceParams = new URLSearchParams({ page: String(page), limit: meta.permissions.includes('attendance.approve') ? '50' : '30' });
   if (search.trim()) attendanceParams.set('search', search.trim());
   if (status) attendanceParams.set('status', status);
@@ -69,13 +74,14 @@ export default function AttendancePage() {
         <section className="card flush">
           <div className="table-wrap">
             <table>
-              <thead><tr><th>Employee</th><th>Check in</th><th>Check out</th><th>Status</th><th>Approved by</th>{isOwner && <th>Actions</th>}</tr></thead>
+              <thead><tr><th>Employee</th><th>Check in</th><th>Check out</th><th>Worked hrs</th><th>Status</th><th>Approved by</th>{isOwner && <th>Actions</th>}</tr></thead>
               <tbody>
                 {data.attendance.map((record) => (
                   <tr key={record.id}>
                     <td><strong>{record.user.name}</strong><div className="muted small">{record.user.email}</div></td>
                     <td>{fmtDateTime(record.checkInAt)}</td>
                     <td>{record.checkOutAt ? fmtDateTime(record.checkOutAt) : <span className="muted">—</span>}</td>
+                    <td>{workedHours(record, now)}</td>
                     <td><Badge>{statusLabel(record)}</Badge>{record.rejectionReason && <div className="muted small" style={{ marginTop: 4 }}>{record.rejectionReason}</div>}</td>
                     <td>{record.approvedBy?.name ?? <span className="muted">—</span>}</td>
                     {isOwner && <td>{record.status === 'pending' ? <><button className="btn small primary" onClick={() => action(`/attendance/${record.id}/approve`, 'Check-in approved')}>Approve</button>{' '}<button className="btn small danger" onClick={() => setRejecting(record)}>Reject</button></> : <span className="muted small">No action</span>}</td>}
@@ -95,6 +101,14 @@ export default function AttendancePage() {
       {rejecting && <RejectModal record={rejecting} onClose={() => setRejecting(null)} onSaved={() => { setRejecting(null); reload(); }} />}
     </>
   );
+}
+
+function workedHours(record: AttendanceRecord, now: number) {
+  if (record.status !== 'approved') return <span className="muted">—</span>;
+  const started = new Date(record.checkInAt).getTime();
+  const ended = record.checkOutAt ? new Date(record.checkOutAt).getTime() : now;
+  const minutes = Math.max(0, Math.floor((ended - started) / 60_000));
+  return `${Math.floor(minutes / 60)}h ${String(minutes % 60).padStart(2, '0')}m`;
 }
 
 function RejectModal({ record, onClose, onSaved }: { record: AttendanceRecord; onClose: () => void; onSaved: () => void }) {
