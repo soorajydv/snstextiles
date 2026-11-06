@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { NECK_TYPES, PAYMENT_METHODS, SLEEVES } from '../../lib/constants';
-import { ENQUIRY_STATUSES, REVIEW_STATUSES, SHOP_SIZES, STOCK_STATUSES } from './site.models';
+import { ENQUIRY_STATUSES, REVIEW_STATUSES, SHOP_SIZES, STOCK_STATUSES } from './site.model';
 
 const text = (max: number) => z.string().trim().max(max);
 const optionalText = (max: number) => text(max).optional().default('');
@@ -171,3 +171,14 @@ export const checkoutSchema = z.object({
   }).optional().default({ amount: 0, method: 'eSewa', reference: '' }),
 });
 export type CheckoutInput = z.infer<typeof checkoutSchema>;
+
+export type CategoryInput = z.infer<typeof categorySchema>;
+export type ProductInput = z.infer<typeof productSchema>;
+export type ProductPatchInput = z.infer<typeof productPatchSchema>;
+export type PageInput = z.infer<typeof pageSchema>;
+export type PostInput = z.infer<typeof postSchema>;
+export type SiteSettingsInput = z.infer<typeof siteSettingsSchema>;
+export type EnquiryUpdateInput = z.infer<typeof enquiryUpdateSchema>;
+export type ReviewUpdateInput = z.infer<typeof reviewUpdateSchema>;
+export type EnquiryInput = z.infer<typeof enquirySchema>;
+export type ReviewInput = z.infer<typeof reviewSchema>;

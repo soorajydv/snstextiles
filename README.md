@@ -134,7 +134,13 @@ backend/src
   config/env.ts          Environment configuration
   lib/                   Shared helpers: constants (roles, stages, sizes…), http errors, uploads, mail, urls, counters
   middleware/            Auth (JWT cookie, role guard) and error handling
-  features/<area>/       One folder per area with its route, model(s) and service/validation files:
+  features/<area>/       One folder per area. Each request flows route → controller → service → model:
+                           <area>.route.ts       URL + permission/upload middleware → controller
+                           <area>.controller.ts  reads the request (ids, body via validation), sends the response
+                           <area>.service.ts     business rules and database work; returns plain data
+                           <area>.validation.ts  zod schemas and input types
+                           <area>.model.ts       Mongoose schemas owned by the area
+                         Areas:
                            attendance, audit, auth, customers, dashboard, inventory, orders (incl. order.workflow.ts:
                            status rules, approval gate, row-level scoping, serialization), payments, reports, roles,
                            settings (settings + meta routes), site (public website & website management), users

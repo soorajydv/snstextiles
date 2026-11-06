@@ -1,5 +1,5 @@
 import { Types } from 'mongoose';
-import { SHOP_SIZES, SiteCategory, SiteProduct } from './site.models';
+import { SHOP_SIZES, SiteCategory, SiteProduct } from './site.model';
 import { slugify, storeSiteImage, uniqueSlug } from './site.service';
 
 /** RFC 4180 CSV parser (quoted fields, escaped quotes, CRLF/LF, BOM). */

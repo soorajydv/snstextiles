@@ -20,7 +20,7 @@ import { getSettings } from '../settings/settings.model';
 import { User } from '../users/user.model';
 import {
   SHOP_SIZES, SiteCategory, SiteMedia, SiteProduct, SiteReview, getSiteSettings,
-} from './site.models';
+} from './site.model';
 import type { CheckoutInput } from './site.validation';
 
 type Lean = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any

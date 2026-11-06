@@ -1,4 +1,4 @@
-import { SiteCategory, SitePage, SitePost, SiteProduct, getSiteSettings } from './site.models';
+import { SiteCategory, SitePage, SitePost, SiteProduct, getSiteSettings } from './site.model';
 
 /** Categories that mirror the existing snstextiles.com menu. */
 const CATEGORY_TREE: { name: string; slug: string; children: { name: string; slug: string }[] }[] = [
