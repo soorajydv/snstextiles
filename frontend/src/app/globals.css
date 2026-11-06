@@ -198,6 +198,7 @@ h3 { font-size: 13px; margin-bottom: 8px; }
 table { border-collapse: collapse; width: 100%; font-size: 12px; }
 th { text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: light-dark(#7c8980, #9aaba0); font-weight: 700; padding: 11px 10px; border-bottom: 1px solid light-dark(#e6ebe5, #2d3a32); white-space: nowrap; }
 td { padding: 13px 10px; border-bottom: 1px solid light-dark(#edf0eb, #27352d); white-space: nowrap; }
+.table-actions { display: flex; align-items: center; gap: 6px; }
 td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 td.wrap { white-space: normal; }
 tr:last-child td { border-bottom: 0; }
@@ -309,6 +310,8 @@ tbody tr.clickable:hover td { background: light-dark(#f7f9f6, #1c2a22); }
 .job-meta { font-size: 10px; color: light-dark(#7a887e, #a3b2a7); line-height: 1.8; margin: 7px 0 10px; }
 .job-foot { display: flex; justify-content: space-between; align-items: center; gap: 7px; }
 .player-checklist-modal { display: grid; gap: 10px; margin: 16px 0 20px; padding: 12px; border: 1px solid light-dark(#e0e7df, #304137); border-radius: 10px; background: light-dark(#fafcf9, #142019); }
+.roster-editor-table { max-height: 44vh; border: 1px solid light-dark(#e0e6df, #2c3b32); border-radius: 10px; }
+.roster-editor-table input, .roster-editor-table select { min-width: 78px; }
 .bar-label { display: flex; justify-content: space-between; font-size: 10px; color: light-dark(#758279, #a0afa4); margin-bottom: 6px; }
 .progress { height: 5px; background: light-dark(#e8eee7, #2b3b31); border-radius: 99px; overflow: hidden; }
 .progress span { display: block; height: 100%; background: #4f8965; border-radius: 99px; }

@@ -15,9 +15,12 @@ const BUILT_IN_NAMES: Record<(typeof ROLES)[number], string> = {
 export async function ensureSystemRoles() {
   await Promise.all(ROLES.map((key) => RoleModel.updateOne(
     { key },
-    { $set: { name: BUILT_IN_NAMES[key], permissions: ROLE_PERMISSIONS[key], system: true } },
+    { $setOnInsert: { name: BUILT_IN_NAMES[key], permissions: ROLE_PERMISSIONS[key], system: true } },
     { upsert: true },
   )));
+  // Clean up the removed permission separately; MongoDB cannot update the same
+  // array path with both $setOnInsert and $pull in one operation.
+  await RoleModel.updateMany({ key: { $in: ROLES } }, { $pull: { permissions: 'payments.reverse' } });
 }
 
 export async function permissionsForUserRole(role: string): Promise<Permission[]> {

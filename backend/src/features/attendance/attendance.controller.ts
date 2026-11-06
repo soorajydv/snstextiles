@@ -15,10 +15,14 @@ const csvCell = (value: unknown) => {
   return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 };
 
+function formatWorkedHours(minutes: number) {
+  return `${Math.floor(minutes / 60)}h ${String(minutes % 60).padStart(2, '0')}m`;
+}
+
 export async function exportAttendanceController(req: Request, res: Response) {
   const records = await exportAttendance(currentUser(req), req.query as Record<string, unknown>);
-  const header = ['Employee', 'Email', 'Role', 'Check in', 'Check out', 'Worked minutes', 'Status', 'Approved by', 'Rejection reason'];
-  const rows = records.map((record) => [record.user.name, record.user.email, record.user.role, record.checkInAt, record.checkOutAt ?? '', record.workedMinutes, record.status, record.approvedBy?.name ?? '', record.rejectionReason]);
+  const header = ['Employee', 'Email', 'Role', 'Check in', 'Check out', 'Worked hrs', 'Status', 'Approved by', 'Rejection reason'];
+  const rows = records.map((record) => [record.user.name, record.user.email, record.user.role, record.checkInAt, record.checkOutAt ?? '', formatWorkedHours(record.workedMinutes), record.status, record.approvedBy?.name ?? '', record.rejectionReason]);
   const csv = [header, ...rows].map((row) => row.map(csvCell).join(',')).join('\r\n');
   res.setHeader('Content-Type', 'text/csv; charset=utf-8');
   res.setHeader('Content-Disposition', `attachment; filename="attendance-${new Date().toISOString().slice(0, 10)}.csv"`);

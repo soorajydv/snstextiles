@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { AppLink as Link } from '@/components/AppLink';
-import { useApi } from '@/lib/api';
+import { api, useApi } from '@/lib/api';
 import { useAuth } from '@/components/AuthProvider';
 import { Notice, OrderTable, PageHeader, Spinner } from '@/components/ui';
+import { ConfirmModal, errorMessage } from '@/components/ui';
+import { useToast } from '@/components/Toast';
 import { canSeeMoney } from '@/lib/format';
 import type { Order } from '@/lib/types';
 
@@ -13,6 +15,7 @@ const PAGE_SIZE = 50;
 
 export default function OrdersPage() {
   const { user, meta } = useAuth();
+  const toast = useToast();
   const isCustomer = user.role === 'customer';
   const [search, setSearch] = useState('');
   const [debounced, setDebounced] = useState('');
@@ -21,6 +24,7 @@ export default function OrdersPage() {
   const [due, setDue] = useState('');
   const [sort, setSort] = useState('deadline');
   const [page, setPage] = useState(1);
+  const [deleting, setDeleting] = useState<Order | null>(null);
 
   useEffect(() => {
     const t = setTimeout(() => setDebounced(search), 300);
@@ -34,8 +38,20 @@ export default function OrdersPage() {
   if (status) qs.set('status', status);
   if (due) qs.set('due', due);
   qs.set('sort', sort);
-  const { data, error, loading } = useApi<{ orders: Order[]; total: number }>(`/orders?${qs}`);
+  const { data, error, loading, reload } = useApi<{ orders: Order[]; total: number }>(`/orders?${qs}`);
   const pages = data ? Math.max(1, Math.ceil(data.total / PAGE_SIZE)) : 1;
+
+  async function deleteOrder() {
+    if (!deleting) return;
+    try {
+      await api(`/orders/${deleting.id}`, { method: 'DELETE' });
+      toast(`${deleting.orderNo} deleted`);
+      setDeleting(null);
+      await reload();
+    } catch (err) {
+      toast(errorMessage(err), 'error');
+    }
+  }
 
   return (
     <>
@@ -69,7 +85,7 @@ export default function OrdersPage() {
         </select>
       </div>
       {error && <Notice tone="error">{error}</Notice>}
-  <div className="card flush">{!data && loading ? <Spinner /> : <OrderTable orders={data?.orders ?? []} showMoney={canSeeMoney(user.role, meta.permissions)} />}</div>
+  <div className="card flush">{!data && loading ? <Spinner /> : <OrderTable orders={data?.orders ?? []} showMoney={canSeeMoney(user.role, meta.permissions)} actions={(order) => <div className="table-actions"><Link className="btn small" href={`/orders/${order.id}`}>{meta.permissions.includes('orders.update') ? 'Edit' : 'View'}</Link>{meta.permissions.includes('orders.delete') && order.stage === 'design' && <button className="btn small danger" onClick={() => setDeleting(order)}>Delete</button>}</div>} />}</div>
       {data && (
         <div className="toolbar" style={{ marginTop: 12, alignItems: 'center', justifyContent: 'space-between' }}>
           <div className="subtitle">{data.total} order{data.total === 1 ? '' : 's'}{user.role !== 'owner' && user.role !== 'accounts' && !isCustomer ? ' in your department queue' : ''}</div>
@@ -82,6 +98,7 @@ export default function OrdersPage() {
           )}
         </div>
       )}
+      {deleting && <ConfirmModal title="Delete order" message={`Delete ${deleting.orderNo}? This cannot be undone.`} confirmLabel="Delete order" onClose={() => setDeleting(null)} onConfirm={deleteOrder} />}
     </>
   );
 }
