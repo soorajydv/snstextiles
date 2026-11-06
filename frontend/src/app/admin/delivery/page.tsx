@@ -49,14 +49,12 @@ export default function DeliveryPage() {
                     <td><DueDate order={o} /></td>
                     {money && <td className={`num ${o.balance ? 'amber' : ''}`}>{fmtMoney(o.balance)}</td>}
                     <td>
-                      {o.stage === 'ready' && canRecordPayment && (o.balance ?? 0) > 0 ? (
-                        <button className="btn small" onClick={() => setPaying(o)}>Record payment</button>
-                      ) : o.stage === 'ready' && meta.permissions.includes('orders.deliver') && !!o.totalAmount && (o.balance ?? 0) <= 0 ? (
-                        <button className="btn small primary" onClick={() => setDispatching(o)}>{o.delivery.packedQuantity ? 'Dispatch remaining' : 'Confirm dispatch'}</button>
-                      ) : o.stage === 'ready' && (o.balance ?? 0) > 0 ? (
-                        <span className="muted small">Payment pending</span>
-                      ) : (
-                        <span className="muted small">{o.stage === 'ready' ? 'Waiting for owner' : 'In QC / packing'}</span>
+                      {o.stage === 'ready' ? <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                        {canRecordPayment && (o.balance ?? 0) > 0 && <button className="btn small" onClick={() => setPaying(o)}>Record payment</button>}
+                        {meta.permissions.includes('orders.deliver') && !!o.totalAmount && <button className="btn small primary" onClick={() => setDispatching(o)}>{o.delivery.packedQuantity ? 'Dispatch remaining' : 'Confirm dispatch'}</button>}
+                        {!canRecordPayment && (o.balance ?? 0) > 0 && <span className="muted small">Payment pending</span>}
+                      </div> : (
+                        <span className="muted small">In QC / packing</span>
                       )}
                     </td>
                   </tr>

@@ -8,9 +8,66 @@ import { Field, Modal, Notice, errorMessage } from './ui';
 import { LocalFilePreview } from './LocalFilePreview';
 import { fmtMoney, toInputDate } from '@/lib/format';
 import { AVATAR_EXTENSIONS, MAX_UPLOAD_BYTES, validateUploadFile } from '@/lib/uploads';
-import type { Order, Payment } from '@/lib/types';
+import type { Order, Payment, Player } from '@/lib/types';
 
 type Done<T> = (result: T) => void;
+
+export function EditRosterModal({ order, onClose, onSaved }: { order: Order; onClose: () => void; onSaved: Done<Order> }) {
+  const { meta } = useAuth();
+  const toast = useToast();
+  const hasShorts = order.productConfig.toLowerCase().includes('shorts');
+  const hasTrouser = order.productConfig.toLowerCase().includes('trouser');
+  const blankPlayer = (): Player => ({ name: '', number: '', sleeve: meta.sleeves[0] ?? 'Half sleeve', jerseySize: '', shortsSize: '', trouserSize: '' });
+  const [players, setPlayers] = useState<Player[]>(() => Array.from({ length: order.quantity }, (_, index) => order.players[index] ?? blankPlayer()));
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  function updatePlayer(index: number, patch: Partial<Player>) {
+    setPlayers((current) => current.map((player, i) => (i === index ? { ...player, ...patch } : player)));
+  }
+
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    setBusy(true);
+    setError('');
+    try {
+      const res = await api<{ order: Order }>(`/orders/${order.id}`, { method: 'PATCH', body: { players } });
+      toast('Player roster updated');
+      onSaved(res.order);
+    } catch (err) {
+      setError(errorMessage(err));
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Modal title={`Edit player roster · ${order.orderNo}`} onClose={onClose}>
+      <form onSubmit={submit}>
+        {error && <Notice tone="error" style={{ marginBottom: 14 }}>{error}</Notice>}
+        <Notice style={{ marginBottom: 14 }}>Add or update one row for each of the {order.quantity} sets. Blank rows can be completed later while the order is still in Design.</Notice>
+        <div className="table-wrap roster-editor-table">
+          <table className="player-table">
+            <thead><tr><th>#</th><th>Name</th><th>No.</th><th>Sleeve</th><th>Jersey</th>{hasShorts && <th>Shorts</th>}{hasTrouser && <th>Trouser</th>}</tr></thead>
+            <tbody>
+              {players.map((player, index) => (
+                <tr key={index}>
+                  <td className="muted">{index + 1}</td>
+                  <td><input aria-label={`Player ${index + 1} name`} value={player.name} onChange={(event) => updatePlayer(index, { name: event.target.value })} placeholder="Name" /></td>
+                  <td><input aria-label={`Player ${index + 1} number`} value={player.number} onChange={(event) => updatePlayer(index, { number: event.target.value })} placeholder="No." /></td>
+                  <td><select aria-label={`Player ${index + 1} sleeve`} value={player.sleeve} onChange={(event) => updatePlayer(index, { sleeve: event.target.value })}>{meta.sleeves.map((sleeve) => <option key={sleeve}>{sleeve}</option>)}</select></td>
+                  <td><select aria-label={`Player ${index + 1} jersey size`} value={player.jerseySize} onChange={(event) => updatePlayer(index, { jerseySize: event.target.value })}><option value="">—</option>{meta.sizes.map((size) => <option key={size}>{size}</option>)}</select></td>
+                  {hasShorts && <td><select aria-label={`Player ${index + 1} shorts size`} value={player.shortsSize} onChange={(event) => updatePlayer(index, { shortsSize: event.target.value })}><option value="">—</option>{meta.sizes.map((size) => <option key={size}>{size}</option>)}</select></td>}
+                  {hasTrouser && <td><select aria-label={`Player ${index + 1} trouser size`} value={player.trouserSize} onChange={(event) => updatePlayer(index, { trouserSize: event.target.value })}><option value="">—</option>{meta.sizes.map((size) => <option key={size}>{size}</option>)}</select></td>}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="form-actions"><button type="button" className="btn" onClick={onClose} disabled={busy}>Cancel</button><button className="btn primary" disabled={busy}>{busy ? 'Saving…' : 'Save roster'}</button></div>
+      </form>
+    </Modal>
+  );
+}
 
 export function RecordPaymentModal({ orders, initialOrderId, onClose, onSaved }: { orders: Order[]; initialOrderId?: string; onClose: () => void; onSaved: Done<Payment> }) {
   const { meta } = useAuth();
@@ -149,7 +206,7 @@ export function DeliverModal({ order, onClose, onSaved }: { order: Order; onClos
       <form onSubmit={submit}>
         {error && <Notice tone="error" style={{ marginBottom: 14 }}>{error}</Notice>}
         {(order.balance ?? 0) > 0 && (
-          <Notice tone="error" style={{ marginBottom: 14 }}>Dispatch is blocked until the outstanding balance of {fmtMoney(order.balance)} is paid.</Notice>
+          <Notice tone="warn" style={{ marginBottom: 14 }}>This order has an outstanding balance of {fmtMoney(order.balance)}. You can dispatch it now and collect the balance later.</Notice>
         )}
         <div className="form-grid">
           <Field label="Dispatch quantity *" hint={diff === 0 ? `Remaining: ${remaining}` : diff < 0 ? `Leaves ${-diff} still to dispatch` : `Exceeds remaining by ${diff}`}>
@@ -180,23 +237,29 @@ export function DeliverModal({ order, onClose, onSaved }: { order: Order; onClos
 }
 
 export function EditOrderModal({ order, onClose, onSaved }: { order: Order; onClose: () => void; onSaved: Done<Order> }) {
+  const { meta } = useAuth();
   const toast = useToast();
+  const hasShorts = order.productConfig.toLowerCase().includes('shorts');
+  const hasTrouser = order.productConfig.toLowerCase().includes('trouser');
+  const blankPlayer = (): Player => ({ name: '', number: '', sleeve: meta.sleeves[0] ?? 'Half sleeve', jerseySize: '', shortsSize: '', trouserSize: '' });
   const [form, setForm] = useState({
     teamName: order.teamName,
     dueDate: toInputDate(order.dueDate),
     unitRate: String(order.unitRate ?? 0),
     comments: order.comments,
   });
+  const [players, setPlayers] = useState<Player[]>(() => Array.from({ length: order.quantity }, (_, index) => order.players[index] ?? blankPlayer()));
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setForm({ ...form, [k]: e.target.value });
+  const updatePlayer = (index: number, patch: Partial<Player>) => setPlayers((current) => current.map((player, i) => (i === index ? { ...player, ...patch } : player)));
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
     setError('');
     try {
-      const res = await api<{ order: Order }>(`/orders/${order.id}`, { method: 'PATCH', body: { ...form, unitRate: Number(form.unitRate) } });
+      const res = await api<{ order: Order }>(`/orders/${order.id}`, { method: 'PATCH', body: { ...form, unitRate: Number(form.unitRate), players } });
       toast('Order updated');
       onSaved(res.order);
     } catch (err) {
@@ -223,6 +286,27 @@ export function EditOrderModal({ order, onClose, onSaved }: { order: Order; onCl
             <textarea rows={3} value={form.comments} onChange={set('comments')} />
           </Field>
         </div>
+        {order.playerListMode === 'image' ? (
+          <Notice style={{ marginTop: 16 }}>This order uses an uploaded player-list image. Replace the image from the order files to change the roster.</Notice>
+        ) : (
+          <div style={{ marginTop: 18 }}>
+            <div className="card-head"><div><h3>Player roster</h3><div className="card-sub">Edit names, numbers, sleeves, and sizes for all {order.quantity} sets.</div></div></div>
+            <div className="table-wrap roster-editor-table">
+              <table className="player-table">
+                <thead><tr><th>#</th><th>Name</th><th>No.</th><th>Sleeve</th><th>Jersey</th>{hasShorts && <th>Shorts</th>}{hasTrouser && <th>Trouser</th>}</tr></thead>
+                <tbody>{players.map((player, index) => <tr key={index}>
+                  <td className="muted">{index + 1}</td>
+                  <td><input aria-label={`Player ${index + 1} name`} value={player.name} onChange={(event) => updatePlayer(index, { name: event.target.value })} placeholder="Name" /></td>
+                  <td><input aria-label={`Player ${index + 1} number`} value={player.number} onChange={(event) => updatePlayer(index, { number: event.target.value })} placeholder="No." /></td>
+                  <td><select aria-label={`Player ${index + 1} sleeve`} value={player.sleeve} onChange={(event) => updatePlayer(index, { sleeve: event.target.value })}>{meta.sleeves.map((sleeve) => <option key={sleeve}>{sleeve}</option>)}</select></td>
+                  <td><select aria-label={`Player ${index + 1} jersey size`} value={player.jerseySize} onChange={(event) => updatePlayer(index, { jerseySize: event.target.value })}><option value="">—</option>{meta.sizes.map((size) => <option key={size}>{size}</option>)}</select></td>
+                  {hasShorts && <td><select aria-label={`Player ${index + 1} shorts size`} value={player.shortsSize} onChange={(event) => updatePlayer(index, { shortsSize: event.target.value })}><option value="">—</option>{meta.sizes.map((size) => <option key={size}>{size}</option>)}</select></td>}
+                  {hasTrouser && <td><select aria-label={`Player ${index + 1} trouser size`} value={player.trouserSize} onChange={(event) => updatePlayer(index, { trouserSize: event.target.value })}><option value="">—</option>{meta.sizes.map((size) => <option key={size}>{size}</option>)}</select></td>}
+                </tr>)}</tbody>
+              </table>
+            </div>
+          </div>
+        )}
         <div className="form-actions">
           <button type="button" className="btn" onClick={onClose}>Cancel</button>
           <button className="btn primary" disabled={busy}>{busy ? 'Saving…' : 'Save changes'}</button>

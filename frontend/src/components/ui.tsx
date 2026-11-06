@@ -142,7 +142,7 @@ function remainingText(order: Pick<Order, 'dueDate' | 'stage'>) {
   return `${months} month${months === 1 ? '' : 's'} left`;
 }
 
-export function OrderTable({ orders, showMoney, compact, showRemaining = false }: { orders: Order[]; showMoney: boolean; compact?: boolean; showRemaining?: boolean }) {
+export function OrderTable({ orders, showMoney, compact, showRemaining = false, actions }: { orders: Order[]; showMoney: boolean; compact?: boolean; showRemaining?: boolean; actions?: (order: Order) => ReactNode }) {
   if (!orders.length) return <Empty>No orders match this view.</Empty>;
   return (
     <div className="table-wrap">
@@ -154,9 +154,10 @@ export function OrderTable({ orders, showMoney, compact, showRemaining = false }
             <th className="num">Qty</th>
             <th>Stage</th>
             <th>Status</th>
-            <th>Due</th>
+            <th>Due date</th>
             {showMoney && !compact && <th className="num">Total</th>}
             {showMoney && !compact && <th className="num">Balance</th>}
+            {actions && <th>Actions</th>}
           </tr>
         </thead>
         <tbody>
@@ -173,6 +174,7 @@ export function OrderTable({ orders, showMoney, compact, showRemaining = false }
               <td><DueDate order={o} />{showRemaining && <span className="deadline-remaining">{remainingText(o)}</span>}</td>
               {showMoney && !compact && <td className="num">{o.totalAmount ? fmtMoney(o.totalAmount) : <span className="muted">To quote</span>}</td>}
               {showMoney && !compact && <td className="num">{fmtMoney(o.balance)}</td>}
+              {actions && <td>{actions(o)}</td>}
             </tr>
           ))}
         </tbody>

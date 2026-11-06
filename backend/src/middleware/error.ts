@@ -2,6 +2,7 @@ import type { NextFunction, Request, Response } from 'express';
 import mongoose from 'mongoose';
 import multer from 'multer';
 import { HttpError } from '../lib/http';
+import { env } from '../config/env';
 
 export function notFoundHandler(_req: Request, res: Response) {
   res.status(404).json({ error: 'Route not found' });
@@ -40,5 +41,14 @@ export function errorHandler(err: unknown, _req: Request, res: Response, _next: 
     return;
   }
   console.error(err);
+  if (!env.isProd) {
+    const error = err instanceof Error ? err : new Error(String(err));
+    res.status(500).json({
+      error: error.message || 'Unexpected server error',
+      name: error.name,
+      stack: error.stack,
+    });
+    return;
+  }
   res.status(500).json({ error: 'Something went wrong on the server' });
 }

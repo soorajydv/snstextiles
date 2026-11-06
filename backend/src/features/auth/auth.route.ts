@@ -11,6 +11,7 @@ import {
   loginController,
   logoutController,
   meController,
+  registerCustomerController,
   resetPasswordController,
   uploadAvatarController,
   updateProfileController,
@@ -35,6 +36,10 @@ const passwordResetLimiter = rateLimit({
 });
 
 router.post('/login', loginLimiter, loginController);
+router.post('/register', loginLimiter, registerCustomerController);
+router.get('/register', (_req, res) => {
+  res.json({ ok: true, method: 'POST', message: 'Customer registration is public. Submit registration details with POST.' });
+});
 router.post('/forgot-password', passwordResetLimiter, forgotPasswordController);
 router.post('/reset-password', passwordResetLimiter, resetPasswordController);
 router.post('/logout', logoutController);

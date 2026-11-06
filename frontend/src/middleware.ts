@@ -17,6 +17,7 @@ const adminSegments = new Set([
   'production',
   'profile',
   'reports',
+  'register',
   'reset-password',
   'roles',
   'settings',

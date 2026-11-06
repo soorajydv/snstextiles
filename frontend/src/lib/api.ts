@@ -30,8 +30,10 @@ export async function api<T = unknown>(path: string, { method = 'GET', body, for
     if (res.status === 401 && typeof window !== 'undefined' && !path.startsWith('/auth/')) {
       window.location.href = appPath(`/login?next=${encodeURIComponent(window.location.pathname)}`);
     }
+    const developmentStack = process.env.NODE_ENV !== 'production' && data?.stack ? `\n\n${data.stack}` : '';
     const message = data?.error
-      ?? (res.status === 413 ? 'Upload is too large. Each file must be no more than 15 MB.' : `Request failed (${res.status})`);
+      ? `${data.error}${developmentStack}`
+      : (res.status === 413 ? 'Upload is too large. Each file must be no more than 15 MB.' : `Request failed (${res.status})`);
     if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('app-api-error', { detail: message }));
     throw new ApiError(res.status, message, data?.details);
   }

@@ -8,13 +8,14 @@ import { useAuth } from '@/components/AuthProvider';
 import { useToast } from '@/components/Toast';
 import { LocalFilePreview } from '@/components/LocalFilePreview';
 import { Badge, ConfirmModal, DueDate, Empty, Field, Modal, Notice, PageHeader, Spinner, errorMessage } from '@/components/ui';
-import { DeliverModal, EditOrderModal, RecordPaymentModal, TextPromptModal } from '@/components/OrderModals';
+import { DeliverModal, EditOrderModal, EditRosterModal, RecordPaymentModal, TextPromptModal } from '@/components/OrderModals';
 import { STAGE_ORDER, STAGE_SHORT, canCompleteStage, canSeeMoney, fileSize, fmtDate, fmtDateTime, fmtMoney } from '@/lib/format';
 import type { Order, Payment, StoredFile } from '@/lib/types';
 import { DESIGN_EXTENSIONS, validateUploadFile } from '@/lib/uploads';
 import { assetPath, appPath } from '@/lib/paths';
+import { Icon } from '@/components/Icon';
 
-type ModalKind = null | 'edit' | 'payment' | 'deliver' | 'advance' | 'sendBack' | 'feedback' | 'upload' | 'approve';
+type ModalKind = null | 'edit' | 'roster' | 'payment' | 'deliver' | 'advance' | 'sendBack' | 'feedback' | 'upload' | 'approve';
 
 export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -52,7 +53,6 @@ export default function OrderDetailPage() {
   const canAdvance = order.stage !== 'ready' && order.stage !== 'delivered' && canCompleteStage(role, order.stage, meta.permissions);
   const cuttingBlocked = isDesign && order.cuttingStatus !== 'completed';
   const advanceBlocked = (isDesign && !order.approved) || cuttingBlocked;
-  const paymentComplete = !!order.totalAmount && (order.balance ?? order.totalAmount - (order.amountPaid ?? 0)) <= 0;
   const canUpload = isDesign && meta.permissions.includes('orders.artwork.upload');
   const canApprove = isDesign && order.currentVersion > 0 && !order.approved && meta.permissions.includes('orders.approve');
   const canFeedback = isDesign && order.currentVersion > 0 && meta.permissions.includes('orders.feedback');
@@ -68,6 +68,32 @@ export default function OrderDetailPage() {
       toast(errorMessage(err), 'error');
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function verifyPayment(payment: Payment) {
+    try {
+      await api(`/payments/${payment.id}/verify`, { method: 'POST' });
+      toast('Payment verified');
+      const [orderRes] = await Promise.all([
+        api<{ order: Order }>(`/orders/${order.id}`),
+        payments.reload(),
+      ]);
+      setData({ order: orderRes.order });
+    } catch (err) {
+      toast(errorMessage(err), 'error');
+    }
+  }
+
+  async function rejectPayment(payment: Payment) {
+    const reason = window.prompt('Reason for rejecting this payment:');
+    if (!reason?.trim()) return;
+    try {
+      await api(`/payments/${payment.id}/reject`, { method: 'POST', body: { reason } });
+      toast('Payment rejected');
+      payments.reload();
+    } catch (err) {
+      toast(errorMessage(err), 'error');
     }
   }
 
@@ -91,15 +117,15 @@ export default function OrderDetailPage() {
         subtitle={`${order.quantity} sets · ${order.productConfig}`}
         actions={
           <>
-            {meta.permissions.includes('orders.update') && order.stage !== 'delivered' && <button className="btn" onClick={() => setModal('edit')}>Edit</button>}
+            {meta.permissions.includes('orders.update') && order.stage !== 'delivered' && <button className="icon-btn" aria-label="Edit order" title="Edit order" onClick={() => setModal('edit')}><Icon name="edit" size={16} /></button>}
             {meta.permissions.includes('orders.send_back') && !['design', 'delivered'].includes(order.stage) && <button className="btn" onClick={() => setModal('sendBack')}>↩ Send back</button>}
-            {meta.permissions.includes('orders.delete') && isDesign && <button className="btn danger" onClick={() => setDeleteConfirmOpen(true)}>Delete</button>}
+            {meta.permissions.includes('orders.delete') && isDesign && <button className="icon-btn" style={{ color: 'var(--danger, #b34d44)' }} aria-label="Delete order" title="Delete order" onClick={() => setDeleteConfirmOpen(true)}><Icon name="trash" size={16} /></button>}
             {canAdvance && (
               <button className="btn primary" disabled={advanceBlocked} title={advanceBlocked ? 'Waiting for customer artwork approval' : undefined} onClick={() => setModal('advance')}>
                 Complete {STAGE_SHORT[order.stage]} → {nextStage && STAGE_SHORT[nextStage]}
               </button>
             )}
-            {order.stage === 'ready' && meta.permissions.includes('orders.deliver') && <button className="btn primary" disabled={!paymentComplete} title={!paymentComplete ? 'Complete payment before dispatch' : undefined} onClick={() => setModal('deliver')}>Confirm dispatch</button>}
+            {order.stage === 'ready' && meta.permissions.includes('orders.deliver') && <button className="btn primary" onClick={() => setModal('deliver')}>Confirm dispatch</button>}
           </>
         }
       />
@@ -115,8 +141,10 @@ export default function OrderDetailPage() {
         <div className="stepper" aria-label="Production progress">
           {STAGE_ORDER.map((s, i) => (
             <div key={s} className={`step ${i < stageIdx || order.stage === 'delivered' ? 'done' : i === stageIdx ? 'current' : ''}`}>
-              <div className="bar" />
-              {STAGE_SHORT[s]}
+              <div className="step-line"><div className="bar" /></div>
+              <div className="step-marker" aria-hidden="true">{i < stageIdx || order.stage === 'delivered' ? '✓' : i === stageIdx ? '•' : i + 1}</div>
+              <div className="step-label">{STAGE_SHORT[s]}</div>
+              <div className="step-state">{i < stageIdx || order.stage === 'delivered' ? 'Completed' : i === stageIdx ? 'In progress' : 'Pending'}</div>
             </div>
           ))}
         </div>
@@ -233,6 +261,7 @@ export default function OrderDetailPage() {
                 <h2>Player roster</h2>
                 <div className="card-sub">{order.playerListMode === 'image' ? 'Player list attached as an image' : `${order.players.length} of ${order.quantity} rows filled`}</div>
               </div>
+              {meta.permissions.includes('orders.update') && isDesign && order.playerListMode !== 'image' && <button className="btn small" onClick={() => setModal('roster')}>Edit roster</button>}
             </div>
             {order.players.length ? (
               <div className="table-wrap">
@@ -283,12 +312,23 @@ export default function OrderDetailPage() {
               {payments.data && payments.data.payments.length > 0 && (
                 <>
                   <h3 style={{ marginTop: 18 }}>Payments</h3>
-                  {payments.data.payments.map((p) => (
-                    <div className="kv" key={p.id}>
-                      <span>{fmtDate(p.receivedAt)} · {p.method}{p.reference ? ` · ${p.reference}` : ''}{p.proof ? <> · <a className="link-btn" href={assetPath(p.proof.url)} target="_blank" rel="noreferrer">Proof</a></> : ''}</span>
-                      <strong>{fmtMoney(p.amount)}</strong>
-                    </div>
-                  ))}
+                  <div className="payment-list">
+                    {payments.data.payments.map((p) => (
+                      <article className="payment-row" key={p.id}>
+                        <div className="payment-main">
+                          <div className="payment-topline">
+                            <strong className="payment-amount">{fmtMoney(p.amount)}</strong>
+                            <Badge>{p.status === 'pending' ? 'Pending verification' : p.status === 'rejected' ? 'Rejected' : p.status === 'reversed' ? 'Reversed' : 'Verified'}</Badge>
+                          </div>
+                          <div className="payment-meta">{fmtDate(p.receivedAt)} · {p.method}{p.reference ? ` · Ref: ${p.reference}` : ''}</div>
+                          {p.proof && <a className="payment-proof" href={assetPath(p.proof.url)} target="_blank" rel="noreferrer">View payment proof ↗</a>}
+                          {p.status === 'rejected' && p.rejectionReason && <div className="payment-reason">Rejection reason: {p.rejectionReason}</div>}
+                          {p.status === 'reversed' && p.reversalReason && <div className="payment-reason">Reversal reason: {p.reversalReason}</div>}
+                        </div>
+                        {p.status === 'pending' && meta.permissions.includes('payments.verify') && <div className="payment-actions"><button className="btn small primary" onClick={() => verifyPayment(p)}>Approve</button><button className="btn small danger" onClick={() => rejectPayment(p)}>Reject</button></div>}
+                      </article>
+                    ))}
+                  </div>
                 </>
               )}
             </section>
@@ -327,6 +367,7 @@ export default function OrderDetailPage() {
       </div>
 
       {modal === 'edit' && <EditOrderModal order={order} onClose={() => setModal(null)} onSaved={update} />}
+      {modal === 'roster' && <EditRosterModal order={order} onClose={() => setModal(null)} onSaved={update} />}
       {modal === 'deliver' && <DeliverModal order={order} onClose={() => setModal(null)} onSaved={update} />}
       {modal === 'payment' && (
         <RecordPaymentModal

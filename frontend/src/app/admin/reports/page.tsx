@@ -14,12 +14,21 @@ interface Summary {
   products: { product: string; orders: number; sets: number }[];
 }
 
+interface AttendanceReport {
+  records: { id: string; user: { name: string; email: string; role: string }; checkInAt: string; checkOutAt: string | null; workedMinutes: number; status: string }[];
+  summary: { records: number; workedMinutes: number; pending: number; missingCheckout: number };
+}
+
+interface PaymentReport { rows: { customerId: string; name: string; status: string; amount: number; payments: number }[] }
+
 const monthLabel = (m: string) => new Date(`${m}-01T00:00:00`).toLocaleDateString('en-GB', { month: 'short', year: '2-digit' });
 const compact = (n: number) => (n >= 100000 ? `${(n / 100000).toFixed(1)}L` : n >= 1000 ? `${Math.round(n / 1000)}k` : String(n));
 
 export default function ReportsPage() {
   const [months, setMonths] = useState(6);
   const { data, error } = useApi<Summary>(`/reports/summary?months=${months}`);
+  const attendance = useApi<AttendanceReport>('/reports/attendance');
+  const paymentReport = useApi<PaymentReport>('/reports/payments');
   const [hover, setHover] = useState<number | null>(null);
   const [showTable, setShowTable] = useState(false);
 
@@ -174,6 +183,23 @@ export default function ReportsPage() {
             </tbody>
           </table>
         </div>
+      </section>
+      <section className="card flush" style={{ marginTop: 16 }}>
+        <div className="card-head" style={{ padding: '18px 18px 0' }}><div><h2>Attendance report</h2><div className="card-sub">Current month · {attendance.data?.summary.records ?? 0} records · {Math.floor((attendance.data?.summary.workedMinutes ?? 0) / 60)}h worked</div></div></div>
+        {!attendance.data ? <Spinner /> : !attendance.data.records.length ? <Empty>No attendance records for this period.</Empty> : (
+          <div className="table-wrap">
+            <table>
+              <thead><tr><th>Employee</th><th>Check in</th><th>Check out</th><th className="num">Worked hrs</th><th>Status</th></tr></thead>
+              <tbody>{attendance.data.records.map((row) => <tr key={row.id}><td>{row.user.name}</td><td>{new Date(row.checkInAt).toLocaleString('en-GB')}</td><td>{row.checkOutAt ? new Date(row.checkOutAt).toLocaleString('en-GB') : '—'}</td><td className="num">{Math.floor(row.workedMinutes / 60)}h {String(row.workedMinutes % 60).padStart(2, '0')}m</td><td>{row.status}</td></tr>)}</tbody>
+            </table>
+          </div>
+        )}
+      </section>
+      <section className="card flush" style={{ marginTop: 16 }}>
+        <div className="card-head" style={{ padding: '18px 18px 0' }}><div><h2>Customer-wise payment ledger</h2><div className="card-sub">Payments grouped by customer and verification status for the current month</div></div></div>
+        {!paymentReport.data ? <Spinner /> : !paymentReport.data.rows.length ? <Empty>No payments for this period.</Empty> : (
+          <div className="table-wrap"><table><thead><tr><th>Customer</th><th>Status</th><th className="num">Payments</th><th className="num">Amount</th></tr></thead><tbody>{paymentReport.data.rows.map((row) => <tr key={`${row.customerId}-${row.status}`}><td>{row.name}</td><td>{row.status}</td><td className="num">{row.payments}</td><td className="num">{fmtMoney(row.amount)}</td></tr>)}</tbody></table></div>
+        )}
       </section>
     </>
   );

@@ -3,6 +3,7 @@ import { Order } from '../models/Order';
 import { Payment } from '../models/Payment';
 import { requirePermission } from '../middleware/auth';
 import { STAGE_LABELS, STAGES, type Stage } from '../lib/constants';
+import { Attendance } from '../features/attendance/attendance.model';
 
 const router = Router();
 router.use(requirePermission('reports.view'));
@@ -21,7 +22,7 @@ router.get('/summary', async (req, res) => {
       { $group: { _id: { y: { $year: '$createdAt' }, m: { $month: '$createdAt' } }, n: { $sum: 1 }, value: { $sum: '$totalAmount' }, qty: { $sum: '$quantity' } } },
     ]),
     Payment.aggregate<{ _id: { y: number; m: number }; amount: number }>([
-      { $match: { receivedAt: { $gte: from } } },
+      { $match: { receivedAt: { $gte: from }, $or: [{ status: 'verified' }, { status: { $exists: false } }] } },
       { $group: { _id: { y: { $year: '$receivedAt' }, m: { $month: '$receivedAt' } }, amount: { $sum: '$amount' } } },
     ]),
     Order.aggregate<{ _id: unknown; name: string; outstanding: number; orders: number }>([
@@ -73,6 +74,36 @@ router.get('/summary', async (req, res) => {
     },
     products: products.map((p) => ({ product: p._id, orders: p.n, sets: p.qty })),
   });
+});
+
+router.get('/attendance', async (req, res) => {
+  const now = new Date();
+  const from = req.query.from ? new Date(String(req.query.from)) : new Date(now.getFullYear(), now.getMonth(), 1);
+  const to = req.query.to ? new Date(String(req.query.to)) : now;
+  to.setHours(23, 59, 59, 999);
+  const rows = await Attendance.find({ checkInAt: { $gte: from, $lte: to } }).populate('user', 'name email role').sort({ checkInAt: -1 }).lean();
+  const records = rows.map((row) => {
+    const user = row.user as unknown as { _id: unknown; name: string; email: string; role: string };
+    const end = row.checkOutAt ? new Date(row.checkOutAt).getTime() : null;
+    const workedMinutes = row.status === 'approved' && end ? Math.max(0, Math.floor((end - new Date(row.checkInAt).getTime()) / 60000)) : 0;
+    return { id: String(row._id), user: { id: String(user?._id ?? row.user), name: user?.name ?? 'Unknown', email: user?.email ?? '', role: user?.role ?? '' }, checkInAt: row.checkInAt, checkOutAt: row.checkOutAt, workedMinutes, status: row.status };
+  });
+  res.json({ records, summary: { records: records.length, workedMinutes: records.reduce((sum, row) => sum + row.workedMinutes, 0), pending: records.filter((row) => row.status === 'pending').length, missingCheckout: records.filter((row) => row.status === 'approved' && !row.checkOutAt).length } });
+});
+
+router.get('/payments', async (req, res) => {
+  const now = new Date();
+  const from = req.query.from ? new Date(String(req.query.from)) : new Date(now.getFullYear(), now.getMonth(), 1);
+  const to = req.query.to ? new Date(String(req.query.to)) : now;
+  to.setHours(23, 59, 59, 999);
+  const rows = await Payment.aggregate<{ _id: { customer: unknown; status: string }; amount: number; payments: number; name: string }>([
+    { $match: { receivedAt: { $gte: from, $lte: to } } },
+    { $group: { _id: { customer: '$customer', status: { $ifNull: ['$status', 'verified'] } }, amount: { $sum: '$amount' }, payments: { $sum: 1 } } },
+    { $sort: { amount: -1 } },
+    { $lookup: { from: 'customers', localField: '_id.customer', foreignField: '_id', as: 'customer' } },
+    { $project: { customerId: '$_id.customer', status: '$_id.status', amount: 1, payments: 1, name: { $ifNull: [{ $arrayElemAt: ['$customer.name', 0] }, 'Unknown'] } } },
+  ]);
+  res.json({ rows: rows.map((row) => ({ customerId: String(row._id.customer), name: row.name, status: row._id.status, amount: row.amount, payments: row.payments })) });
 });
 
 const csvCell = (v: unknown) => {

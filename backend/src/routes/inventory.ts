@@ -5,9 +5,24 @@ import { Order } from '../models/Order';
 import { currentUser, requireAnyPermission, requirePermission } from '../middleware/auth';
 import { assertObjectId, badRequest, conflict, escapeRegex, notFound, pagination, parse } from '../lib/http';
 import { audit } from '../lib/audit';
+import { Supplier } from '../models/Supplier';
 
 const router = Router();
 router.use(requirePermission('inventory.view'));
+
+router.get('/suppliers', async (_req, res) => {
+  const suppliers = await Supplier.find({ active: true }).sort({ name: 1 }).lean();
+  res.json({ suppliers: suppliers.map((supplier) => ({ id: String(supplier._id), name: supplier.name, contactPerson: supplier.contactPerson, phone: supplier.phone, email: supplier.email, address: supplier.address, panNumber: supplier.panNumber })) });
+});
+
+const supplierSchema = z.object({ name: z.string().trim().min(2).max(120), contactPerson: z.string().trim().max(120).optional().default(''), phone: z.string().trim().max(40).optional().default(''), email: z.string().trim().email().optional().or(z.literal('')).default(''), address: z.string().trim().max(300).optional().default(''), panNumber: z.string().trim().max(30).optional().default('') });
+
+router.post('/suppliers', requirePermission('inventory.manage'), async (req, res) => {
+  const user = currentUser(req);
+  const supplier = await Supplier.create(parse(supplierSchema, req.body));
+  await audit(user, 'inventory.supplier_created', 'Supplier', String(supplier._id), `Added supplier ${supplier.name}`);
+  res.status(201).json({ supplier: { id: String(supplier._id), name: supplier.name } });
+});
 
 const itemDto = (i: Record<string, any>) => ({
   id: String(i._id),
@@ -18,6 +33,7 @@ const itemDto = (i: Record<string, any>) => ({
   onHand: i.onHand,
   reorderLevel: i.reorderLevel,
   active: i.active,
+  supplier: i.supplier && typeof i.supplier === 'object' && 'name' in i.supplier ? { id: String(i.supplier._id), name: i.supplier.name } : null,
   lowStock: i.onHand < i.reorderLevel,
   updatedAt: i.updatedAt,
 });
@@ -47,7 +63,7 @@ router.get('/items', async (req, res) => {
   if (query.stock === 'low') filter.$expr = { $lt: ['$onHand', '$reorderLevel'] };
   const sort: Record<string, 1 | -1> = query.sort === 'stock' ? { onHand: 1, name: 1 } : query.sort === 'updated' ? { updatedAt: -1, name: 1 } : { category: 1, name: 1 };
   const [items, total, activeTotal, lowStockTotal, categories] = await Promise.all([
-    InventoryItem.find(filter).sort(sort).skip(skip).limit(limit).lean(),
+    InventoryItem.find(filter).populate('supplier', 'name').sort(sort).skip(skip).limit(limit).lean(),
     InventoryItem.countDocuments(filter),
     InventoryItem.countDocuments({ ...filter, active: true }),
     InventoryItem.countDocuments({ ...(includeInactive ? {} : { active: true }), $expr: { $lt: ['$onHand', '$reorderLevel'] } }),
@@ -63,12 +79,13 @@ const itemSchema = z.object({
   unit: z.string().trim().min(1).max(20),
   reorderLevel: z.coerce.number().min(0).default(0),
   openingStock: z.coerce.number().min(0).optional().default(0),
+  supplierId: z.string().nullish(),
 });
 
 router.post('/items', requirePermission('inventory.manage'), async (req, res) => {
   const user = currentUser(req);
   const body = parse(itemSchema, req.body);
-  const item = await InventoryItem.create({ ...body, onHand: body.openingStock });
+  const item = await InventoryItem.create({ ...body, supplier: body.supplierId || null, onHand: body.openingStock });
   if (body.openingStock > 0) {
     await StockMovement.create({ item: item._id, type: 'in', change: body.openingStock, balanceAfter: body.openingStock, note: 'Opening stock', by: user.id, byName: user.name });
   }
@@ -80,7 +97,8 @@ router.patch('/items/:id', requirePermission('inventory.manage'), async (req, re
   const user = currentUser(req);
   const id = assertObjectId(req.params.id, 'Item');
   const body = parse(itemSchema.omit({ openingStock: true }).partial().extend({ active: z.boolean().optional() }), req.body);
-  const item = await InventoryItem.findByIdAndUpdate(id, body, { returnDocument: 'after', runValidators: true }).lean();
+  const { supplierId, ...itemFields } = body;
+  const item = await InventoryItem.findByIdAndUpdate(id, { ...itemFields, ...(supplierId !== undefined ? { supplier: supplierId || null } : {}) }, { returnDocument: 'after', runValidators: true }).populate('supplier', 'name').lean();
   if (!item) throw notFound('Item not found');
   await audit(user, 'inventory.item_updated', 'InventoryItem', id, `Updated material ${item.name}`);
   res.json({ item: itemDto(item) });

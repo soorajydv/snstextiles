@@ -4,8 +4,8 @@ import { AUTH_COOKIE, currentUser } from '../../middleware/auth';
 import { badRequest, HttpError, parse } from '../../lib/http';
 import { storedFilePath } from '../../lib/uploads';
 import { User } from '../../models/user.model';
-import { changePasswordSchema, deleteAccountSchema, forgotPasswordSchema, loginSchema, profileSchema, resetPasswordSchema } from './auth.validation';
-import { changePassword, deleteAccount, getProfile, login, removeAvatar, requestPasswordReset, resetPassword, updateAvatar, updateProfile } from './auth.service';
+import { changePasswordSchema, customerRegistrationSchema, deleteAccountSchema, forgotPasswordSchema, loginSchema, profileSchema, resetPasswordSchema } from './auth.validation';
+import { changePassword, deleteAccount, getProfile, login, registerCustomer, removeAvatar, requestPasswordReset, resetPassword, updateAvatar, updateProfile } from './auth.service';
 import { sendPasswordResetEmail } from '../../lib/mail';
 
 const cookieOptions = {
@@ -21,6 +21,11 @@ export async function loginController(req: Request, res: Response) {
   const result = await login(identifier, password);
   res.cookie(AUTH_COOKIE, result.token, cookieOptions);
   res.json(result);
+}
+
+export async function registerCustomerController(req: Request, res: Response) {
+  const body = parse(customerRegistrationSchema, req.body);
+  res.status(201).json(await registerCustomer(body));
 }
 
 export async function forgotPasswordController(req: Request, res: Response) {

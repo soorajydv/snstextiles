@@ -6,7 +6,7 @@ import { useAuth } from '@/components/AuthProvider';
 import { useToast } from '@/components/Toast';
 import { Badge, Empty, Field, Modal, Notice, PageHeader, Spinner, StatCard, errorMessage } from '@/components/ui';
 import { fmtDateTime } from '@/lib/format';
-import type { InventoryItem, StockMovement } from '@/lib/types';
+import type { InventoryItem, StockMovement, Supplier } from '@/lib/types';
 
 type MoveType = 'in' | 'out' | 'adjust';
 
@@ -23,6 +23,7 @@ export default function InventoryPage() {
   const [movementPage, setMovementPage] = useState(1);
   const [moving, setMoving] = useState<{ item: InventoryItem; type: MoveType } | null>(null);
   const [editing, setEditing] = useState<InventoryItem | 'new' | null>(null);
+  const [addingSupplier, setAddingSupplier] = useState(false);
 
   useEffect(() => setItemPage(1), [search, category, stock, sort]);
   const itemParams = new URLSearchParams({ page: String(itemPage), limit: '50' });
@@ -33,6 +34,7 @@ export default function InventoryPage() {
   if (sort !== 'name') itemParams.set('sort', sort);
   const items = useApi<{ items: InventoryItem[]; total: number; limit: number; lowStockTotal: number; activeTotal: number; categories: string[] }>(`/inventory/items?${itemParams}`);
   const movements = useApi<{ movements: StockMovement[]; total: number; limit: number }>(`/inventory/movements?page=${movementPage}&limit=20`);
+  const suppliers = useApi<{ suppliers: Supplier[] }>('/inventory/suppliers');
   const list = items.data?.items ?? [];
   const low = list.filter((i) => i.active && i.lowStock);
   const categories = items.data?.categories ?? [];
@@ -47,7 +49,7 @@ export default function InventoryPage() {
         eyebrow="MATERIALS CONTROL"
         title="Inventory & materials"
         subtitle="Fabric, printing consumables, thread, trims and packaging. Record stock received and issued to the floor."
-        actions={canManage && <button className="btn primary" onClick={() => setEditing('new')}>＋ Add material</button>}
+        actions={canManage && <><button className="btn" onClick={() => setAddingSupplier(true)}>＋ Add supplier</button><button className="btn primary" onClick={() => setEditing('new')}>＋ Add material</button></>}
       />
       <div className="stats">
         <StatCard label="Tracked materials" value={items.data?.activeTotal ?? '—'} note="Active SKUs" icon="▧" />
@@ -86,7 +88,7 @@ export default function InventoryPage() {
           <div className="table-wrap">
             <table>
               <thead>
-                <tr><th>Material</th><th>SKU</th><th>Category</th><th className="num">Available</th><th className="num">Reorder level</th><th>Status</th><th>Actions</th></tr>
+                <tr><th>Material</th><th>SKU</th><th>Category</th><th>Supplier</th><th className="num">Available</th><th className="num">Reorder level</th><th>Status</th><th>Actions</th></tr>
               </thead>
               <tbody>
                 {list.map((i) => (
@@ -94,6 +96,7 @@ export default function InventoryPage() {
                     <td><strong>{i.name}</strong></td>
                     <td>{i.sku}</td>
                     <td>{i.category}</td>
+                    <td>{i.supplier?.name ?? '—'}</td>
                     <td className="num">{i.onHand} {i.unit}</td>
                     <td className="num">{i.reorderLevel} {i.unit}</td>
                     <td><Badge>{!i.active ? 'Inactive' : i.lowStock ? 'Reorder needed' : 'In stock'}</Badge></td>
@@ -153,9 +156,25 @@ export default function InventoryPage() {
       </div>}
 
       {moving && <MovementModal {...moving} onClose={() => setMoving(null)} onSaved={() => { setMoving(null); refresh(); }} />}
-      {editing && <ItemModal item={editing === 'new' ? null : editing} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); refresh(); }} />}
+      {editing && <ItemModal item={editing === 'new' ? null : editing} suppliers={suppliers.data?.suppliers ?? []} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); refresh(); }} />}
+      {addingSupplier && <SupplierModal onClose={() => setAddingSupplier(false)} onSaved={() => { setAddingSupplier(false); suppliers.reload(); }} />}
     </>
   );
+}
+
+function SupplierModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
+  const toast = useToast();
+  const [form, setForm] = useState({ name: '', contactPerson: '', phone: '', email: '', address: '', panNumber: '' });
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const set = (key: keyof typeof form) => (event: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, [key]: event.target.value });
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    setBusy(true);
+    setError('');
+    try { await api('/inventory/suppliers', { method: 'POST', body: form }); toast('Supplier added'); onSaved(); } catch (err) { setError(errorMessage(err)); setBusy(false); }
+  }
+  return <Modal title="Add supplier" onClose={onClose}><form onSubmit={submit}>{error && <Notice tone="error">{error}</Notice>}<div className="form-grid"><Field label="Supplier name *" full><input required value={form.name} onChange={set('name')} /></Field><Field label="Contact person"><input value={form.contactPerson} onChange={set('contactPerson')} /></Field><Field label="Phone"><input value={form.phone} onChange={set('phone')} /></Field><Field label="Email"><input type="email" value={form.email} onChange={set('email')} /></Field><Field label="PAN / VAT number"><input value={form.panNumber} onChange={set('panNumber')} /></Field><Field label="Address" full><input value={form.address} onChange={set('address')} /></Field></div><div className="form-actions"><button type="button" className="btn" onClick={onClose}>Cancel</button><button className="btn primary" disabled={busy}>{busy ? 'Saving…' : 'Add supplier'}</button></div></form></Modal>;
 }
 
 function MovementModal({ item, type, onClose, onSaved }: { item: InventoryItem; type: MoveType; onClose: () => void; onSaved: () => void }) {
@@ -208,7 +227,7 @@ function MovementModal({ item, type, onClose, onSaved }: { item: InventoryItem; 
   );
 }
 
-function ItemModal({ item, onClose, onSaved }: { item: InventoryItem | null; onClose: () => void; onSaved: () => void }) {
+function ItemModal({ item, suppliers, onClose, onSaved }: { item: InventoryItem | null; suppliers: Supplier[]; onClose: () => void; onSaved: () => void }) {
   const { meta } = useAuth();
   const toast = useToast();
   const [form, setForm] = useState({
@@ -219,6 +238,7 @@ function ItemModal({ item, onClose, onSaved }: { item: InventoryItem | null; onC
     reorderLevel: String(item?.reorderLevel ?? 0),
     openingStock: '0',
     active: item?.active ?? true,
+    supplierId: item?.supplier?.id ?? '',
   });
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -229,8 +249,8 @@ function ItemModal({ item, onClose, onSaved }: { item: InventoryItem | null; onC
     setBusy(true);
     setError('');
     const body = item
-      ? { name: form.name, sku: form.sku, category: form.category, unit: form.unit, reorderLevel: Number(form.reorderLevel), active: form.active }
-      : { ...form, reorderLevel: Number(form.reorderLevel), openingStock: Number(form.openingStock), active: undefined };
+      ? { name: form.name, sku: form.sku, category: form.category, unit: form.unit, reorderLevel: Number(form.reorderLevel), active: form.active, supplierId: form.supplierId || null }
+      : { ...form, reorderLevel: Number(form.reorderLevel), openingStock: Number(form.openingStock), active: undefined, supplierId: form.supplierId || null };
     try {
       await api(item ? `/inventory/items/${item.id}` : '/inventory/items', { method: item ? 'PATCH' : 'POST', body });
       toast(item ? 'Material updated' : 'Material added');
@@ -255,6 +275,9 @@ function ItemModal({ item, onClose, onSaved }: { item: InventoryItem | null; onC
           </Field>
           <Field label="Unit *"><input required value={form.unit} onChange={set('unit')} placeholder="metres, rolls, pieces…" /></Field>
           <Field label="Reorder level"><input type="number" min="0" step="any" value={form.reorderLevel} onChange={set('reorderLevel')} /></Field>
+          <Field label="Supplier">
+            <select value={form.supplierId} onChange={set('supplierId')}><option value="">No supplier selected</option>{suppliers.map((supplier) => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}</select>
+          </Field>
           {!item && <Field label="Opening stock"><input type="number" min="0" step="any" value={form.openingStock} onChange={set('openingStock')} /></Field>}
           {item && (
             <label className="checkbox-line">
