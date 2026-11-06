@@ -38,6 +38,6 @@ router.post('/:id/deliver', requirePermission('orders.deliver'), deliverOrderCon
 router.post('/:id/invoice', requirePermission('orders.invoice'), issueInvoiceController);
 
 // ---------- private files ----------
-router.get('/:id/files/:storedName', orderFileController);
+router.get('/:id/files/:storedName', requirePermission('orders.view'), orderFileController);
 
 export default router;

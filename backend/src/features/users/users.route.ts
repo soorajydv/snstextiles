@@ -9,12 +9,10 @@ import {
 } from './users.controller';
 
 const router = Router();
-router.use(requirePermission('users.manage'));
-
-router.get('/', listUsersController);
-router.post('/', createUserController);
-router.patch('/:id', updateUserController);
-router.post('/:id/reset-password', resetUserPasswordController);
-router.delete('/:id', deleteUserController);
+router.get('/', requirePermission('users.view'), listUsersController);
+router.post('/', requirePermission('users.create'), createUserController);
+router.patch('/:id', requirePermission('users.update'), updateUserController);
+router.post('/:id/reset-password', requirePermission('users.password_reset'), resetUserPasswordController);
+router.delete('/:id', requirePermission('users.delete'), deleteUserController);
 
 export default router;

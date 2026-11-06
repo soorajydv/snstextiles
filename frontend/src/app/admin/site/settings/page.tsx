@@ -20,15 +20,15 @@ type Section = (typeof SECTIONS)[number][0];
 export default function SiteSettingsPage() {
   const { meta } = useAuth();
   const toast = useToast();
-  const allowed = meta.permissions.includes('site.view');
-  const canManage = meta.permissions.includes('site.manage');
+  const allowed = meta.permissions.includes('site.settings.view');
+  const canManage = meta.permissions.includes('site.settings.update');
   const { data, error } = useApi<{ settings: SiteSettings }>(allowed ? '/site/settings' : null);
   const [form, setForm] = useState<SiteSettings | null>(null);
   const [section, setSection] = useState<Section>('brand');
   const [busy, setBusy] = useState(false);
   const [saveError, setSaveError] = useState('');
   useEffect(() => { if (data) setForm(data.settings); }, [data]);
-  if (!allowed) return <Notice tone="error">You do not have permission to manage the website.</Notice>;
+  if (!allowed) return <Notice tone="error">You do not have permission to view website settings.</Notice>;
   if (error) return <Notice tone="error">{error}</Notice>;
   if (!form) return <Spinner />;
 

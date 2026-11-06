@@ -4,6 +4,7 @@ import { useRef, useState } from 'react';
 import { api } from '@/lib/api';
 import { assetPath } from '@/lib/paths';
 import { useToast } from '@/components/Toast';
+import { useAuth } from '@/components/AuthProvider';
 import { errorMessage } from '@/components/ui';
 
 const IMAGE_TYPES = 'image/png,image/jpeg,image/webp,image/gif,image/avif';
@@ -18,6 +19,8 @@ export async function uploadSiteImages(files: File[]): Promise<string[]> {
 /** Ordered image list with upload, paste-a-URL, reorder and remove. The first image is the cover. */
 export function ImageListInput({ value, onChange, max = 12, disabled }: { value: string[]; onChange: (next: string[]) => void; max?: number; disabled?: boolean }) {
   const toast = useToast();
+  const { meta } = useAuth();
+  const canUpload = meta.permissions.includes('site.media.upload');
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [url, setUrl] = useState('');
@@ -75,7 +78,7 @@ export function ImageListInput({ value, onChange, max = 12, disabled }: { value:
       )}
       {!disabled && value.length < max && (
         <div className="image-list-controls">
-          <button type="button" className="btn small" onClick={() => input.current?.click()} disabled={busy}>{busy ? 'Uploading…' : '＋ Upload images'}</button>
+          {canUpload && <button type="button" className="btn small" onClick={() => input.current?.click()} disabled={busy}>{busy ? 'Uploading…' : '＋ Upload images'}</button>}
           <input ref={input} type="file" accept={IMAGE_TYPES} multiple hidden onChange={(e) => upload(e.target.files)} />
           <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="…or paste an image URL" onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addUrl(); } }} />
           <button type="button" className="btn small" onClick={addUrl} disabled={!url.trim()}>Add</button>

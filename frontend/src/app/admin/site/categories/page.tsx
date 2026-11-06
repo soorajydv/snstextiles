@@ -13,12 +13,14 @@ import type { SiteCategory } from '@/lib/types';
 export default function SiteCategoriesPage() {
   const { meta } = useAuth();
   const toast = useToast();
-  const canManage = meta.permissions.includes('site.manage');
-  const allowed = meta.permissions.includes('site.view');
+  const canCreate = meta.permissions.includes('site.categories.create');
+  const canUpdate = meta.permissions.includes('site.categories.update');
+  const canDelete = meta.permissions.includes('site.categories.delete');
+  const allowed = meta.permissions.includes('site.categories.view');
   const { data, error, reload } = useApi<{ categories: SiteCategory[] }>(allowed ? '/site/categories' : null);
   const [editing, setEditing] = useState<SiteCategory | 'new' | null>(null);
   const [deleting, setDeleting] = useState<SiteCategory | null>(null);
-  if (!allowed) return <Notice tone="error">You do not have permission to manage the website.</Notice>;
+  if (!allowed) return <Notice tone="error">You do not have permission to view shop categories.</Notice>;
   const tree = sortTree(data?.categories ?? []);
 
   async function remove(category: SiteCategory) {
@@ -36,7 +38,7 @@ export default function SiteCategoriesPage() {
         eyebrow="WEBSITE"
         title="Categories"
         subtitle="Shop menu, category pages and homepage tiles. Sub-categories appear under their parent in the menu."
-        actions={canManage && <button className="btn primary" onClick={() => setEditing('new')}>＋ Add category</button>}
+        actions={canCreate && <button className="btn primary" onClick={() => setEditing('new')}>＋ Add category</button>}
       />
       {error && <Notice tone="error">{error}</Notice>}
       <div className="card flush">
@@ -45,7 +47,7 @@ export default function SiteCategoriesPage() {
             <thead><tr><th>Category</th><th>Web address</th><th className="num">Products</th><th>Homepage</th><th>Status</th><th /></tr></thead>
             <tbody>
               {tree.map(({ category: c, depth }) => (
-                <tr key={c.id} className="clickable" onClick={() => canManage && setEditing(c)}>
+                <tr key={c.id} className="clickable" onClick={() => canUpdate && setEditing(c)}>
                   <td>
                     <div className="cell-with-thumb" style={{ paddingLeft: depth * 22 }}>
                       {depth > 0 && <span className="category-indent">↳</span>}
@@ -60,8 +62,8 @@ export default function SiteCategoriesPage() {
                   <td onClick={(e) => e.stopPropagation()}>
                     <div className="table-actions">
                       <a className="btn small" href={`/category/${c.slug}`} target="_blank" rel="noreferrer">↗</a>
-                      {canManage && <button className="btn small" onClick={() => setEditing(c)}>Edit</button>}
-                      {canManage && <button className="btn small danger" onClick={() => setDeleting(c)}>Delete</button>}
+                      {canUpdate && <button className="btn small" onClick={() => setEditing(c)}>Edit</button>}
+                      {canDelete && <button className="btn small danger" onClick={() => setDeleting(c)}>Delete</button>}
                     </div>
                   </td>
                 </tr>

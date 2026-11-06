@@ -13,8 +13,9 @@ type Subscriber = { id: string; email: string; active: boolean; source: string; 
 export default function SiteSubscribersPage() {
   const { meta } = useAuth();
   const toast = useToast();
-  const allowed = meta.permissions.includes('site.view');
-  const canManage = meta.permissions.includes('site.manage');
+  const allowed = meta.permissions.includes('site.subscribers.view');
+  const canExport = meta.permissions.includes('site.subscribers.export');
+  const canDelete = meta.permissions.includes('site.subscribers.delete');
   const [search, setSearch] = useState('');
   const [debounced, setDebounced] = useState('');
   const [page, setPage] = useState(1);
@@ -23,7 +24,7 @@ export default function SiteSubscribersPage() {
   const qs = new URLSearchParams({ page: String(page), limit: '100' });
   if (debounced) qs.set('search', debounced);
   const { data, error, reload } = useApi<{ subscribers: Subscriber[]; total: number; limit: number }>(allowed ? `/site/subscribers?${qs}` : null);
-  if (!allowed) return <Notice tone="error">You do not have permission to manage the website.</Notice>;
+  if (!allowed) return <Notice tone="error">You do not have permission to view newsletter subscribers.</Notice>;
   const pages = data ? Math.max(1, Math.ceil(data.total / data.limit)) : 1;
 
   async function remove(s: Subscriber) {
@@ -36,7 +37,7 @@ export default function SiteSubscribersPage() {
         eyebrow="WEBSITE"
         title="Newsletter subscribers"
         subtitle="People who signed up in the website footer. Export the list to use in your email tool."
-        actions={<a className="btn" href={appPath('/api/site/subscribers/export')}>Export CSV</a>}
+        actions={canExport && <a className="btn" href={appPath('/api/site/subscribers/export')}>Export CSV</a>}
       />
       <div className="toolbar"><div className="search"><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search email…" aria-label="Search subscribers" /></div></div>
       {error && <Notice tone="error">{error}</Notice>}
@@ -49,7 +50,7 @@ export default function SiteSubscribersPage() {
                 <tr key={s.id}>
                   <td><a href={`mailto:${s.email}`}>{s.email}</a></td>
                   <td className="small">{fmtDate(s.createdAt)}</td>
-                  <td>{canManage && <button className="btn small danger" onClick={() => setDeleting(s)}>Remove</button>}</td>
+                  <td>{canDelete && <button className="btn small danger" onClick={() => setDeleting(s)}>Remove</button>}</td>
                 </tr>
               ))}
             </tbody>

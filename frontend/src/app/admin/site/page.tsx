@@ -14,8 +14,8 @@ type Overview = {
 
 export default function WebsiteOverviewPage() {
   const { meta } = useAuth();
-  const { data, error } = useApi<Overview>(meta.permissions.includes('site.view') ? '/site/overview' : null);
-  if (!meta.permissions.includes('site.view')) return <Notice tone="error">You do not have permission to manage the website.</Notice>;
+  const { data, error } = useApi<Overview>(meta.permissions.includes('site.overview') ? '/site/overview' : null);
+  if (!meta.permissions.includes('site.overview')) return <Notice tone="error">You do not have permission to view the website overview.</Notice>;
 
   const c = data?.counts;
   return (
@@ -35,7 +35,7 @@ export default function WebsiteOverviewPage() {
             <StatCard label="Products online" value={c!.products} note={`${c!.drafts} draft${c!.drafts === 1 ? '' : 's'} · ${c!.categories} categories`} icon="◈" />
             <StatCard label="Reviews to approve" value={c!.pendingReviews} note={`${c!.subscribers} newsletter subscribers`} icon="★" tone={c!.pendingReviews ? 'amber' : ''} />
           </div>
-          {c!.remoteImages > 0 && meta.permissions.includes('site.manage') && (
+          {c!.remoteImages > 0 && meta.permissions.includes('site.products.import') && (
             <Notice tone="warn" style={{ marginBottom: 16 }}>
               {c!.remoteImages} product{c!.remoteImages === 1 ? '' : 's'} still load images from the old WordPress site. Open <Link href="/site/products">Products</Link> and use <strong>Download old images</strong> so they keep working after the switch.
             </Notice>

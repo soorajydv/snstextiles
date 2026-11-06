@@ -13,8 +13,8 @@ import {
 export const settingsRouter = Router();
 
 settingsRouter.get('/', requirePermission('settings.view'), getSettingsController);
-settingsRouter.put('/', requirePermission('settings.manage'), updateSettingsController);
-settingsRouter.patch('/audit-retention', requirePermission('settings.manage'), updateAuditRetentionController);
+settingsRouter.put('/', requirePermission('settings.update'), updateSettingsController);
+settingsRouter.patch('/audit-retention', requirePermission('audit.retention.update'), updateAuditRetentionController);
 settingsRouter.get('/logo', requirePermission('settings.view'), getLogoController);
-settingsRouter.patch('/business-logo', requirePermission('settings.manage'), avatarUpload.single('logo'), updateBusinessLogoController);
-settingsRouter.delete('/business-logo', requirePermission('settings.manage'), removeBusinessLogoController);
+settingsRouter.patch('/business-logo', requirePermission('settings.update'), avatarUpload.single('logo'), updateBusinessLogoController);
+settingsRouter.delete('/business-logo', requirePermission('settings.update'), removeBusinessLogoController);

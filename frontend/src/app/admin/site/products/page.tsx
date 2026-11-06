@@ -10,7 +10,7 @@ import { fmtMoney } from '@/lib/format';
 import { assetPath } from '@/lib/paths';
 import { renderMarkdown } from '@/lib/markdown';
 import { sortTree } from '@/lib/siteTree';
-import { SHOP_SIZES, type SiteCategory, type SiteProduct, type StockStatus } from '@/lib/types';
+import { SHOP_SIZES, type Permission, type SiteCategory, type SiteProduct, type StockStatus } from '@/lib/types';
 
 const PAGE_SIZE = 50;
 const STOCK_LABELS: Record<StockStatus, string> = { made_to_order: 'Made to order', in_stock: 'In stock', out_of_stock: 'Out of stock' };
@@ -20,7 +20,11 @@ type ProductList = { products: SiteProduct[]; total: number; page: number; limit
 export default function SiteProductsPage() {
   const { meta } = useAuth();
   const toast = useToast();
-  const canManage = meta.permissions.includes('site.manage');
+  const can = (p: Permission) => meta.permissions.includes(p);
+  const canCreate = can('site.products.create');
+  const canUpdate = can('site.products.update');
+  const canDelete = can('site.products.delete');
+  const canImport = can('site.products.import');
   const [search, setSearch] = useState('');
   const [debounced, setDebounced] = useState('');
   const [category, setCategory] = useState('');
@@ -39,11 +43,11 @@ export default function SiteProductsPage() {
   if (category === '__none') qs.set('uncategorised', '1');
   else if (category) qs.set('category', category);
   if (status) qs.set('status', status);
-  const allowed = meta.permissions.includes('site.view');
+  const allowed = can('site.products.view');
   const { data, error, reload } = useApi<ProductList>(allowed ? `/site/products?${qs}` : null);
-  const { data: catData } = useApi<{ categories: SiteCategory[] }>(allowed ? '/site/categories' : null);
-  const { data: overview, reload: reloadOverview } = useApi<{ counts: { remoteImages: number } }>(allowed ? '/site/overview' : null);
-  if (!allowed) return <Notice tone="error">You do not have permission to manage the website.</Notice>;
+  const { data: catData } = useApi<{ categories: SiteCategory[] }>(allowed && can('site.categories.view') ? '/site/categories' : null);
+  const { data: overview, reload: reloadOverview } = useApi<{ counts: { remoteImages: number } }>(allowed && canImport && can('site.overview') ? '/site/overview' : null);
+  if (!allowed) return <Notice tone="error">You do not have permission to view website products.</Notice>;
 
   const categories = sortTree(catData?.categories ?? []);
   const pages = data ? Math.max(1, Math.ceil(data.total / PAGE_SIZE)) : 1;
@@ -92,14 +96,14 @@ export default function SiteProductsPage() {
         eyebrow="WEBSITE"
         title="Products"
         subtitle="Everything customers can order from the online shop. Prices here are what the website charges at checkout."
-        actions={canManage && (
+        actions={(canImport || canCreate) && (
           <>
-            <button className="btn" onClick={() => setImporting(true)}>Import from WooCommerce</button>
-            <button className="btn primary" onClick={() => setEditing('new')}>＋ Add product</button>
+            {canImport && <button className="btn" onClick={() => setImporting(true)}>Import from WooCommerce</button>}
+            {canCreate && <button className="btn primary" onClick={() => setEditing('new')}>＋ Add product</button>}
           </>
         )}
       />
-      {canManage && (overview?.counts.remoteImages ?? 0) > 0 && (
+      {canImport && (overview?.counts.remoteImages ?? 0) > 0 && (
         <Notice tone="warn" style={{ marginBottom: 14 }}>
           <div style={{ display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' }}>
             <span>{localizing ? `Downloading images… ${localizing.downloaded} saved, ${localizing.remaining} product${localizing.remaining === 1 ? '' : 's'} left` : `${overview!.counts.remoteImages} product${overview!.counts.remoteImages === 1 ? '' : 's'} still use images hosted on the old WordPress site.`}</span>
@@ -122,12 +126,12 @@ export default function SiteProductsPage() {
       </div>
       {error && <Notice tone="error">{error}</Notice>}
       <div className="card flush">
-        {!data ? <Spinner /> : !data.products.length ? <Empty>No products found. {canManage && 'Add one or import your WooCommerce catalogue.'}</Empty> : (
+        {!data ? <Spinner /> : !data.products.length ? <Empty>No products found. {(canCreate || canImport) && 'Add one or import your WooCommerce catalogue.'}</Empty> : (
           <div className="table-wrap"><table>
             <thead><tr><th>Product</th><th>Categories</th><th className="num">Price</th><th>Stock</th><th>Status</th><th className="num">Sold</th><th /></tr></thead>
             <tbody>
               {data.products.map((p) => (
-                <tr key={p.id} className="clickable" onClick={() => canManage && setEditing(p)}>
+                <tr key={p.id} className="clickable" onClick={() => canUpdate && setEditing(p)}>
                   <td>
                     <div className="cell-with-thumb">
                       {p.images[0] ? <img className="site-thumb" src={assetPath(p.images[0])} alt="" /> : <span className="site-thumb empty">▧</span>}
@@ -137,7 +141,7 @@ export default function SiteProductsPage() {
                   <td className="wrap small">{p.categories.map((c) => c.name).join(', ') || <span className="muted">—</span>}</td>
                   <td className="num">{p.salePrice !== null ? <><s className="muted small">{fmtMoney(p.price)}</s><br /><strong>{fmtMoney(p.salePrice)}</strong></> : fmtMoney(p.price)}</td>
                   <td onClick={(e) => e.stopPropagation()}>
-                    {canManage ? (
+                    {canUpdate ? (
                       <select className="btn small" value={p.stockStatus} onChange={(e) => quickUpdate(p, { stockStatus: e.target.value as StockStatus })} aria-label="Stock status">
                         {Object.entries(STOCK_LABELS).map(([k, label]) => <option key={k} value={k}>{label}</option>)}
                       </select>
@@ -148,9 +152,9 @@ export default function SiteProductsPage() {
                   <td onClick={(e) => e.stopPropagation()}>
                     <div className="table-actions">
                       <a className="btn small" href={`/product/${p.slug}`} target="_blank" rel="noreferrer" title="View on website">↗</a>
-                      {canManage && <button className="btn small" onClick={() => quickUpdate(p, { published: !p.published })}>{p.published ? 'Unpublish' : 'Publish'}</button>}
-                      {canManage && <button className="btn small" onClick={() => quickUpdate(p, { featured: !p.featured })}>{p.featured ? 'Unfeature' : 'Feature'}</button>}
-                      {canManage && <button className="btn small danger" onClick={() => setDeleting(p)}>Delete</button>}
+                      {canUpdate && <button className="btn small" onClick={() => quickUpdate(p, { published: !p.published })}>{p.published ? 'Unpublish' : 'Publish'}</button>}
+                      {canUpdate && <button className="btn small" onClick={() => quickUpdate(p, { featured: !p.featured })}>{p.featured ? 'Unfeature' : 'Feature'}</button>}
+                      {canDelete && <button className="btn small danger" onClick={() => setDeleting(p)}>Delete</button>}
                     </div>
                   </td>
                 </tr>

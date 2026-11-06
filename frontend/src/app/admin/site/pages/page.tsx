@@ -13,17 +13,20 @@ import type { SitePage, SitePost } from '@/lib/types';
 
 export default function SitePagesPage() {
   const { meta } = useAuth();
+  const canPages = meta.permissions.includes('site.pages.view');
+  const canPosts = meta.permissions.includes('site.posts.view');
   const [tab, setTab] = useState<'pages' | 'blog'>('pages');
   useEffect(() => { if (new URLSearchParams(window.location.search).get('tab') === 'blog') setTab('blog'); }, []);
-  if (!meta.permissions.includes('site.view')) return <Notice tone="error">You do not have permission to manage the website.</Notice>;
+  if (!canPages && !canPosts) return <Notice tone="error">You do not have permission to view website pages or blog posts.</Notice>;
+  const current = !canPages ? 'blog' : !canPosts ? 'pages' : tab;
   return (
     <>
       <PageHeader eyebrow="WEBSITE" title="Pages & blog" subtitle="About us, policies and other pages, plus blog posts for the Journal." />
       <div className="tabs" role="tablist">
-        <button role="tab" aria-selected={tab === 'pages'} className={tab === 'pages' ? 'active' : ''} onClick={() => setTab('pages')}>Pages</button>
-        <button role="tab" aria-selected={tab === 'blog'} className={tab === 'blog' ? 'active' : ''} onClick={() => setTab('blog')}>Blog posts</button>
+        {canPages && <button role="tab" aria-selected={current === 'pages'} className={current === 'pages' ? 'active' : ''} onClick={() => setTab('pages')}>Pages</button>}
+        {canPosts && <button role="tab" aria-selected={current === 'blog'} className={current === 'blog' ? 'active' : ''} onClick={() => setTab('blog')}>Blog posts</button>}
       </div>
-      {tab === 'pages' ? <PagesTab /> : <BlogTab />}
+      {current === 'pages' ? <PagesTab /> : <BlogTab />}
     </>
   );
 }
@@ -47,7 +50,9 @@ function MarkdownEditor({ value, onChange, rows = 14 }: { value: string; onChang
 function PagesTab() {
   const { meta } = useAuth();
   const toast = useToast();
-  const canManage = meta.permissions.includes('site.manage');
+  const canCreate = meta.permissions.includes('site.pages.create');
+  const canUpdate = meta.permissions.includes('site.pages.update');
+  const canDelete = meta.permissions.includes('site.pages.delete');
   const { data, error, reload } = useApi<{ pages: SitePage[] }>('/site/pages');
   const [editing, setEditing] = useState<SitePage | 'new' | null>(null);
   const [deleting, setDeleting] = useState<SitePage | null>(null);
@@ -58,7 +63,7 @@ function PagesTab() {
 
   return (
     <>
-      {canManage && <div className="toolbar" style={{ justifyContent: 'flex-end' }}><button className="btn primary" onClick={() => setEditing('new')}>＋ New page</button></div>}
+      {canCreate && <div className="toolbar" style={{ justifyContent: 'flex-end' }}><button className="btn primary" onClick={() => setEditing('new')}>＋ New page</button></div>}
       {error && <Notice tone="error">{error}</Notice>}
       <div className="card flush">
         {!data ? <Spinner /> : !data.pages.length ? <Empty>No pages yet.</Empty> : (
@@ -66,7 +71,7 @@ function PagesTab() {
             <thead><tr><th>Page</th><th>Address</th><th>Footer link</th><th>Status</th><th>Updated</th><th /></tr></thead>
             <tbody>
               {data.pages.map((p) => (
-                <tr key={p.id} className="clickable" onClick={() => canManage && setEditing(p)}>
+                <tr key={p.id} className="clickable" onClick={() => canUpdate && setEditing(p)}>
                   <td><strong>{p.title}</strong>{p.excerpt && <div className="muted small">{p.excerpt}</div>}</td>
                   <td className="muted small">/{p.slug}</td>
                   <td>{p.showInFooter ? 'Yes' : '—'}</td>
@@ -74,7 +79,7 @@ function PagesTab() {
                   <td className="small">{fmtDate(p.updatedAt)}</td>
                   <td onClick={(e) => e.stopPropagation()}><div className="table-actions">
                     {p.published && <a className="btn small" href={`/${p.slug}`} target="_blank" rel="noreferrer">↗</a>}
-                    {canManage && <button className="btn small danger" onClick={() => setDeleting(p)}>Delete</button>}
+                    {canDelete && <button className="btn small danger" onClick={() => setDeleting(p)}>Delete</button>}
                   </div></td>
                 </tr>
               ))}
@@ -130,7 +135,9 @@ function PageForm({ page, onClose, onSaved }: { page: SitePage | null; onClose: 
 function BlogTab() {
   const { meta } = useAuth();
   const toast = useToast();
-  const canManage = meta.permissions.includes('site.manage');
+  const canCreate = meta.permissions.includes('site.posts.create');
+  const canUpdate = meta.permissions.includes('site.posts.update');
+  const canDelete = meta.permissions.includes('site.posts.delete');
   const { data, error, reload } = useApi<{ posts: SitePost[]; total: number }>('/site/posts?limit=200');
   const [editing, setEditing] = useState<SitePost | 'new' | null>(null);
   const [deleting, setDeleting] = useState<SitePost | null>(null);
@@ -141,7 +148,7 @@ function BlogTab() {
 
   return (
     <>
-      {canManage && <div className="toolbar" style={{ justifyContent: 'flex-end' }}><button className="btn primary" onClick={() => setEditing('new')}>＋ New post</button></div>}
+      {canCreate && <div className="toolbar" style={{ justifyContent: 'flex-end' }}><button className="btn primary" onClick={() => setEditing('new')}>＋ New post</button></div>}
       {error && <Notice tone="error">{error}</Notice>}
       <div className="card flush">
         {!data ? <Spinner /> : !data.posts.length ? <Empty>No blog posts yet.</Empty> : (
@@ -149,13 +156,13 @@ function BlogTab() {
             <thead><tr><th>Post</th><th>Published</th><th>Status</th><th /></tr></thead>
             <tbody>
               {data.posts.map((p) => (
-                <tr key={p.id} className="clickable" onClick={() => canManage && setEditing(p)}>
+                <tr key={p.id} className="clickable" onClick={() => canUpdate && setEditing(p)}>
                   <td><div className="cell-with-thumb">{p.coverImage ? <img className="site-thumb" src={assetPath(p.coverImage)} alt="" /> : <span className="site-thumb empty">✎</span>}<div><strong>{p.title}</strong><div className="muted small">/blog/{p.slug}</div></div></div></td>
                   <td className="small">{fmtDate(p.publishedAt)}</td>
                   <td><Badge>{p.published ? (new Date(p.publishedAt) > new Date() ? 'Scheduled' : 'Active') : 'Draft'}</Badge></td>
                   <td onClick={(e) => e.stopPropagation()}><div className="table-actions">
                     {p.published && <a className="btn small" href={`/blog/${p.slug}`} target="_blank" rel="noreferrer">↗</a>}
-                    {canManage && <button className="btn small danger" onClick={() => setDeleting(p)}>Delete</button>}
+                    {canDelete && <button className="btn small danger" onClick={() => setDeleting(p)}>Delete</button>}
                   </div></td>
                 </tr>
               ))}

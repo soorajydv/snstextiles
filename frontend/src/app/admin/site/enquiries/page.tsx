@@ -14,7 +14,7 @@ const STATUS_LABEL: Record<SiteEnquiry['status'], string> = { new: 'New', in_pro
 export default function SiteEnquiriesPage() {
   const { meta } = useAuth();
   const toast = useToast();
-  const allowed = meta.permissions.includes('site.enquiries');
+  const allowed = meta.permissions.includes('site.enquiries.view');
   const [type, setType] = useState('');
   const [status, setStatus] = useState('');
   const [search, setSearch] = useState('');
@@ -93,6 +93,9 @@ export default function SiteEnquiriesPage() {
 
 function EnquiryDetail({ enquiry, onClose, onSaved, onDelete }: { enquiry: SiteEnquiry; onClose: () => void; onSaved: (e: SiteEnquiry) => void; onDelete: () => void }) {
   const toast = useToast();
+  const { meta } = useAuth();
+  const canUpdate = meta.permissions.includes('site.enquiries.update');
+  const canDelete = meta.permissions.includes('site.enquiries.delete');
   const [status, setStatus] = useState(enquiry.status);
   const [notes, setNotes] = useState(enquiry.notes);
   const [busy, setBusy] = useState(false);
@@ -140,17 +143,17 @@ function EnquiryDetail({ enquiry, onClose, onSaved, onDelete }: { enquiry: SiteE
       )}
       <div className="form-grid" style={{ marginTop: 16 }}>
         <Field label="Status">
-          <select value={status} onChange={(e) => setStatus(e.target.value as SiteEnquiry['status'])}>
+          <select disabled={!canUpdate} value={status} onChange={(e) => setStatus(e.target.value as SiteEnquiry['status'])}>
             {Object.entries(STATUS_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
         </Field>
-        <Field label="Internal notes" full><textarea rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Quoted NPR 1,200 per set, waiting for logo…" /></Field>
+        <Field label="Internal notes" full><textarea disabled={!canUpdate} rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Quoted NPR 1,200 per set, waiting for logo…" /></Field>
       </div>
       <div className="form-actions" style={{ justifyContent: 'space-between' }}>
-        <button className="btn danger" onClick={onDelete}>Delete</button>
+        {canDelete ? <button className="btn danger" onClick={onDelete}>Delete</button> : <span />}
         <div style={{ display: 'flex', gap: 9 }}>
           <a className="btn" href={reply}>Reply by email</a>
-          <button className="btn primary" disabled={busy} onClick={save}>{busy ? 'Saving…' : 'Save'}</button>
+          {canUpdate && <button className="btn primary" disabled={busy} onClick={save}>{busy ? 'Saving…' : 'Save'}</button>}
         </div>
       </div>
     </Modal>

@@ -14,9 +14,7 @@ import {
 } from './site.admin.controller';
 
 const router = Router();
-const view = requirePermission('site.view');
-const manage = requirePermission('site.manage');
-const enquiries = requirePermission('site.enquiries');
+const can = requirePermission;
 
 const imageUpload = multer({
   storage: multer.memoryStorage(),
@@ -37,55 +35,55 @@ const importUpload = multer({
 });
 
 // ---------- overview & settings ----------
-router.get('/overview', view, overviewController);
-router.get('/settings', view, getSettingsController);
-router.put('/settings', manage, updateSettingsController);
+router.get('/overview', can('site.overview'), overviewController);
+router.get('/settings', can('site.settings.view'), getSettingsController);
+router.put('/settings', can('site.settings.update'), updateSettingsController);
 
 // ---------- media ----------
-router.get('/media', view, listMediaController);
-router.post('/media', manage, imageUpload.array('files', 20), uploadMediaController);
-router.delete('/media/:id', manage, deleteMediaController);
+router.get('/media', can('site.media.view'), listMediaController);
+router.post('/media', can('site.media.upload'), imageUpload.array('files', 20), uploadMediaController);
+router.delete('/media/:id', can('site.media.delete'), deleteMediaController);
 
 // ---------- categories ----------
-router.get('/categories', view, listCategoriesController);
-router.post('/categories', manage, createCategoryController);
-router.put('/categories/:id', manage, updateCategoryController);
-router.delete('/categories/:id', manage, deleteCategoryController);
+router.get('/categories', can('site.categories.view'), listCategoriesController);
+router.post('/categories', can('site.categories.create'), createCategoryController);
+router.put('/categories/:id', can('site.categories.update'), updateCategoryController);
+router.delete('/categories/:id', can('site.categories.delete'), deleteCategoryController);
 
 // ---------- products ----------
-router.get('/products', view, listProductsController);
-router.get('/products/:id', view, getProductController);
-router.post('/products', manage, createProductController);
-router.put('/products/:id', manage, updateProductController);
-router.patch('/products/:id', manage, patchProductController);
-router.delete('/products/:id', manage, deleteProductController);
-router.post('/products/import', manage, importUpload.array('files', 6), importProductsController);
-router.post('/products/localize-images', manage, localizeImagesController);
+router.get('/products', can('site.products.view'), listProductsController);
+router.get('/products/:id', can('site.products.view'), getProductController);
+router.post('/products', can('site.products.create'), createProductController);
+router.put('/products/:id', can('site.products.update'), updateProductController);
+router.patch('/products/:id', can('site.products.update'), patchProductController);
+router.delete('/products/:id', can('site.products.delete'), deleteProductController);
+router.post('/products/import', can('site.products.import'), importUpload.array('files', 6), importProductsController);
+router.post('/products/localize-images', can('site.products.import'), localizeImagesController);
 
 // ---------- pages & posts ----------
-router.get('/pages', view, listPagesController);
-router.post('/pages', manage, createPageController);
-router.put('/pages/:id', manage, updatePageController);
-router.delete('/pages/:id', manage, deletePageController);
-router.get('/posts', view, listPostsController);
-router.post('/posts', manage, createPostController);
-router.put('/posts/:id', manage, updatePostController);
-router.delete('/posts/:id', manage, deletePostController);
+router.get('/pages', can('site.pages.view'), listPagesController);
+router.post('/pages', can('site.pages.create'), createPageController);
+router.put('/pages/:id', can('site.pages.update'), updatePageController);
+router.delete('/pages/:id', can('site.pages.delete'), deletePageController);
+router.get('/posts', can('site.posts.view'), listPostsController);
+router.post('/posts', can('site.posts.create'), createPostController);
+router.put('/posts/:id', can('site.posts.update'), updatePostController);
+router.delete('/posts/:id', can('site.posts.delete'), deletePostController);
 
 // ---------- enquiries ----------
-router.get('/enquiries', enquiries, listEnquiriesController);
-router.patch('/enquiries/:id', enquiries, updateEnquiryController);
-router.delete('/enquiries/:id', enquiries, deleteEnquiryController);
-router.get('/enquiries/:id/files/:storedName', enquiries, enquiryFileController);
+router.get('/enquiries', can('site.enquiries.view'), listEnquiriesController);
+router.patch('/enquiries/:id', can('site.enquiries.update'), updateEnquiryController);
+router.delete('/enquiries/:id', can('site.enquiries.delete'), deleteEnquiryController);
+router.get('/enquiries/:id/files/:storedName', can('site.enquiries.view'), enquiryFileController);
 
 // ---------- reviews ----------
-router.get('/reviews', view, listReviewsController);
-router.patch('/reviews/:id', manage, updateReviewController);
-router.delete('/reviews/:id', manage, deleteReviewController);
+router.get('/reviews', can('site.reviews.view'), listReviewsController);
+router.patch('/reviews/:id', can('site.reviews.moderate'), updateReviewController);
+router.delete('/reviews/:id', can('site.reviews.delete'), deleteReviewController);
 
 // ---------- subscribers ----------
-router.get('/subscribers', view, listSubscribersController);
-router.get('/subscribers/export', view, exportSubscribersController);
-router.delete('/subscribers/:id', manage, deleteSubscriberController);
+router.get('/subscribers', can('site.subscribers.view'), listSubscribersController);
+router.get('/subscribers/export', can('site.subscribers.export'), exportSubscribersController);
+router.delete('/subscribers/:id', can('site.subscribers.delete'), deleteSubscriberController);
 
 export default router;

@@ -14,7 +14,7 @@ const PAGE_SIZE = 50;
 export default function ActivityPage() {
   const { meta, settings, refreshSettings } = useAuth();
   const toast = useToast();
-  const canManageSettings = meta.permissions.includes('settings.manage');
+  const canManageSettings = meta.permissions.includes('audit.retention.update');
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');

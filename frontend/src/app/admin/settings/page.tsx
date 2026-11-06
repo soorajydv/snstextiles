@@ -12,7 +12,7 @@ import { assetPath } from '@/lib/paths';
 export default function SettingsPage() {
   const { meta, settings, refreshSettings } = useAuth();
   const toast = useToast();
-  const canManage = meta.permissions.includes('settings.manage');
+  const canManage = meta.permissions.includes('settings.update');
   const [form, setForm] = useState({ ...settings, dueSoonDays: String(settings.dueSoonDays) });
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);

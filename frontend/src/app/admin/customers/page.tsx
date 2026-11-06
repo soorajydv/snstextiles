@@ -11,7 +11,8 @@ import type { Customer, Order } from '@/lib/types';
 
 export default function CustomersPage() {
   const { meta } = useAuth();
-  const canManage = meta.permissions.includes('customers.manage');
+  const canCreate = meta.permissions.includes('customers.create');
+  const canUpdate = meta.permissions.includes('customers.update');
   const toast = useToast();
   const [search, setSearch] = useState('');
   const [debounced, setDebounced] = useState('');
@@ -48,7 +49,7 @@ export default function CustomersPage() {
         eyebrow="CUSTOMER DIRECTORY"
         title="Customers"
         subtitle="Clubs, schools and teams with their order history and balances."
-        actions={canManage && <button className="btn primary" onClick={() => setEditing('new')}>＋ Add customer</button>}
+        actions={canCreate && <button className="btn primary" onClick={() => setEditing('new')}>＋ Add customer</button>}
       />
       {customerToDelete && <ConfirmModal title="Delete customer" message={`Delete ${customerToDelete.name}?`} confirmLabel="Delete customer" onClose={() => setCustomerToDelete(null)} onConfirm={() => remove(customerToDelete)} />}
       <div className="stats">
@@ -85,7 +86,7 @@ export default function CustomersPage() {
                     <td className="num">{fmtMoney(c.outstanding)}</td>
                     <td><Badge>{c.orderCount === 0 ? 'New' : c.outstanding ? 'Balance due' : 'Settled'}</Badge></td>
                     <td onClick={(e) => e.stopPropagation()}>
-                      {canManage && <button className="btn small" onClick={() => setEditing(c)}>Edit</button>}{canManage && ' '}
+                      {canUpdate && <button className="btn small" onClick={() => setEditing(c)}>Edit</button>}{canUpdate && ' '}
                       {meta.permissions.includes('customers.delete') && c.orderCount === 0 && <button className="btn small danger" onClick={() => setCustomerToDelete(c)}>Delete</button>}
                     </td>
                   </tr>

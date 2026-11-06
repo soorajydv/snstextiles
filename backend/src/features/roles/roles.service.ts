@@ -1,6 +1,6 @@
 import { Role as RoleModel } from './role.model';
 import { User } from '../users/user.model';
-import { permissionsForRole, PERMISSIONS, ROLE_PERMISSIONS, ROLES, type Permission } from '../../lib/constants';
+import { LEGACY_PERMISSIONS, permissionsForRole, PERMISSIONS, ROLE_PERMISSIONS, ROLES, type Permission } from '../../lib/constants';
 import { badRequest, conflict, notFound, parse } from '../../lib/http';
 import { audit } from '../audit/audit.service';
 import type { AuthUser } from '../../middleware/auth';
@@ -17,7 +17,17 @@ const BUILT_IN_NAMES: Record<(typeof ROLES)[number], string> = {
   customer: 'Customer',
 };
 
+/** Replaces retired broad permissions (e.g. users.manage) with their per-action equivalents on stored roles. */
+async function migrateLegacyPermissions() {
+  for (const [legacy, replacements] of Object.entries(LEGACY_PERMISSIONS)) {
+    // Retired keys are no longer part of the typed Permission union, hence the cast.
+    await RoleModel.updateMany({ permissions: legacy } as Record<string, unknown>, { $addToSet: { permissions: { $each: replacements } } });
+  }
+  await RoleModel.updateMany({}, { $pull: { permissions: { $in: Object.keys(LEGACY_PERMISSIONS) } } });
+}
+
 export async function ensureSystemRoles() {
+  await migrateLegacyPermissions();
   await Promise.all(ROLES.map((key) => RoleModel.updateOne(
     { key },
     { $setOnInsert: { name: BUILT_IN_NAMES[key], permissions: ROLE_PERMISSIONS[key], system: true } },
@@ -65,8 +75,8 @@ export async function updateRole(me: AuthUser, key: string, rawBody: unknown) {
   const role = await RoleModel.findOne({ key });
   if (!role) throw notFound('Role not found');
   const body = parse(updateSchema, rawBody);
-  if (key === 'owner' && !body.permissions.includes('roles.manage')) {
-    throw badRequest('The owner role must retain roles.manage permission');
+  if (key === 'owner' && !body.permissions.includes('roles.update')) {
+    throw badRequest('The owner role must retain roles.update permission');
   }
   const before = new Set(role.permissions);
   const after = new Set(body.permissions);

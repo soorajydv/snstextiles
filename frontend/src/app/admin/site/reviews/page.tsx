@@ -11,15 +11,16 @@ import type { SiteReview } from '@/lib/types';
 export default function SiteReviewsPage() {
   const { meta } = useAuth();
   const toast = useToast();
-  const allowed = meta.permissions.includes('site.view');
-  const canManage = meta.permissions.includes('site.manage');
+  const allowed = meta.permissions.includes('site.reviews.view');
+  const canModerate = meta.permissions.includes('site.reviews.moderate');
+  const canDelete = meta.permissions.includes('site.reviews.delete');
   const [status, setStatus] = useState('pending');
   const [page, setPage] = useState(1);
   const [deleting, setDeleting] = useState<SiteReview | null>(null);
   const qs = new URLSearchParams({ page: String(page), limit: '50' });
   if (status) qs.set('status', status);
   const { data, error, reload } = useApi<{ reviews: SiteReview[]; total: number; limit: number }>(allowed ? `/site/reviews?${qs}` : null);
-  if (!allowed) return <Notice tone="error">You do not have permission to manage the website.</Notice>;
+  if (!allowed) return <Notice tone="error">You do not have permission to view product reviews.</Notice>;
   const pages = data ? Math.max(1, Math.ceil(data.total / data.limit)) : 1;
 
   async function setReviewStatus(review: SiteReview, next: 'approved' | 'rejected') {
@@ -52,11 +53,11 @@ export default function SiteReviewsPage() {
                   <td className="small">{r.product ? <a href={`/product/${r.product.slug}`} target="_blank" rel="noreferrer">{r.product.name}</a> : '—'}</td>
                   <td className="small">{fmtDate(r.createdAt)}</td>
                   <td><Badge>{r.status === 'approved' ? 'Active' : r.status === 'pending' ? 'Pending' : 'Inactive'}</Badge></td>
-                  <td>{canManage && (
+                  <td>{(canModerate || canDelete) && (
                     <div className="table-actions">
-                      {r.status !== 'approved' && <button className="btn small primary" onClick={() => setReviewStatus(r, 'approved')}>Approve</button>}
-                      {r.status !== 'rejected' && <button className="btn small" onClick={() => setReviewStatus(r, 'rejected')}>Hide</button>}
-                      <button className="btn small danger" onClick={() => setDeleting(r)}>Delete</button>
+                      {canModerate && r.status !== 'approved' && <button className="btn small primary" onClick={() => setReviewStatus(r, 'approved')}>Approve</button>}
+                      {canModerate && r.status !== 'rejected' && <button className="btn small" onClick={() => setReviewStatus(r, 'rejected')}>Hide</button>}
+                      {canDelete && <button className="btn small danger" onClick={() => setDeleting(r)}>Delete</button>}
                     </div>
                   )}</td>
                 </tr>

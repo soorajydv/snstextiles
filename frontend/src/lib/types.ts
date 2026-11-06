@@ -1,10 +1,24 @@
 export type Role = string;
+/** Mirrors PERMISSIONS in backend/src/lib/constants.ts — one permission per action. */
 export type Permission =
   | 'dashboard.view' | 'orders.view' | 'orders.create' | 'orders.update' | 'orders.delete' | 'orders.artwork.upload' | 'orders.approve' | 'orders.feedback' | 'orders.stage.complete' | 'orders.send_back' | 'orders.deliver' | 'orders.invoice'
-  | 'customers.view' | 'customers.manage' | 'customers.delete' | 'payments.view' | 'payments.record' | 'payments.verify' | 'payments.delete'
-  | 'inventory.view' | 'inventory.manage' | 'inventory.move' | 'inventory.adjust' | 'reports.view' | 'users.manage' | 'settings.view' | 'settings.manage' | 'audit.view'
-  | 'roles.manage' | 'profile.manage' | 'account.delete' | 'attendance.view' | 'attendance.checkin' | 'attendance.checkout' | 'attendance.approve'
-  | 'site.view' | 'site.manage' | 'site.enquiries';
+  | 'customers.view' | 'customers.create' | 'customers.update' | 'customers.delete'
+  | 'payments.view' | 'payments.record' | 'payments.verify' | 'payments.delete'
+  | 'inventory.view' | 'inventory.create' | 'inventory.update' | 'inventory.move' | 'inventory.adjust' | 'inventory.suppliers.create'
+  | 'reports.view'
+  | 'users.view' | 'users.create' | 'users.update' | 'users.password_reset' | 'users.delete'
+  | 'roles.view' | 'roles.create' | 'roles.update' | 'roles.delete'
+  | 'settings.view' | 'settings.update' | 'audit.view' | 'audit.retention.update'
+  | 'profile.update' | 'account.delete'
+  | 'attendance.view' | 'attendance.checkin' | 'attendance.checkout' | 'attendance.approve'
+  | 'site.overview' | 'site.settings.view' | 'site.settings.update' | 'site.media.view' | 'site.media.upload' | 'site.media.delete'
+  | 'site.categories.view' | 'site.categories.create' | 'site.categories.update' | 'site.categories.delete'
+  | 'site.products.view' | 'site.products.create' | 'site.products.update' | 'site.products.delete' | 'site.products.import'
+  | 'site.pages.view' | 'site.pages.create' | 'site.pages.update' | 'site.pages.delete'
+  | 'site.posts.view' | 'site.posts.create' | 'site.posts.update' | 'site.posts.delete'
+  | 'site.enquiries.view' | 'site.enquiries.update' | 'site.enquiries.delete'
+  | 'site.reviews.view' | 'site.reviews.moderate' | 'site.reviews.delete'
+  | 'site.subscribers.view' | 'site.subscribers.export' | 'site.subscribers.delete';
 
 export interface RoleDefinition {
   key: Role;
