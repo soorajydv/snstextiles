@@ -46,11 +46,20 @@ router.patch('/:key', async (req, res) => {
   if (key === 'owner' && !body.permissions.includes('roles.manage')) {
     throw badRequest('The owner role must retain roles.manage permission');
   }
+  const before = new Set(role.permissions);
+  const after = new Set(body.permissions);
+  const added = body.permissions.filter((permission) => !before.has(permission));
+  const removed = role.permissions.filter((permission) => !after.has(permission));
   role.name = body.name;
   role.description = body.description;
   role.permissions = body.permissions;
   await role.save();
-  await audit(me, 'role.updated', 'Role', String(role._id), `Updated role ${role.name}`);
+  const affectedUsers = await User.countDocuments({ role: key });
+  const permissionChange = [
+    added.length ? `added: ${added.join(', ')}` : '',
+    removed.length ? `removed: ${removed.join(', ')}` : '',
+  ].filter(Boolean).join('; ');
+  await audit(me, permissionChange ? 'role.permissions_updated' : 'role.updated', 'Role', String(role._id), `Updated role ${role.name}${permissionChange ? ` (${permissionChange}; ${affectedUsers} linked user${affectedUsers === 1 ? '' : 's'})` : ''}`);
   res.json({ role: dto(role.toObject()) });
 });
 

@@ -5,6 +5,15 @@ export const loginSchema = z.object({
   password: z.string().min(1),
 });
 
+export const customerRegistrationSchema = z.object({
+  businessName: z.string().trim().min(2).max(120),
+  contactPerson: z.string().trim().min(2).max(120),
+  phone: z.string().trim().max(30).optional().default(''),
+  email: z.string().trim().toLowerCase().email('Enter a valid email address'),
+  username: z.string().trim().toLowerCase().min(3).max(40).regex(/^[a-z0-9._-]+$/, 'Use only letters, numbers, dots, underscores or hyphens'),
+  password: z.string().min(8, 'Use at least 8 characters'),
+});
+
 export const forgotPasswordSchema = z.object({
   email: z.string().trim().toLowerCase().email('Enter a valid email address'),
 });

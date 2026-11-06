@@ -15,7 +15,7 @@ const BUILT_IN_NAMES: Record<(typeof ROLES)[number], string> = {
 export async function ensureSystemRoles() {
   await Promise.all(ROLES.map((key) => RoleModel.updateOne(
     { key },
-    { $setOnInsert: { key, name: BUILT_IN_NAMES[key], permissions: ROLE_PERMISSIONS[key], system: true } },
+    { $set: { name: BUILT_IN_NAMES[key], permissions: ROLE_PERMISSIONS[key], system: true } },
     { upsert: true },
   )));
 }

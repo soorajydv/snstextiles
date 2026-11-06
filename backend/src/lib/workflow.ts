@@ -107,6 +107,7 @@ export function serializeOrder(order: SerializableOrder, user: AuthUser) {
     dueDate: o.dueDate,
     cuttingStatus,
     cuttingCompletedAt: o.cuttingCompletedAt,
+    designChecklist: o.designChecklist ?? { playerListVerified: false, playerListVerifiedAt: null, playerListVerifiedByName: '' },
     playerListMode: o.playerListMode ?? 'manual',
     players: o.players,
     comments: o.comments,

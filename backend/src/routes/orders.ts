@@ -17,6 +17,7 @@ import {
 } from '../lib/workflow';
 import { compressUploadedImage, isInlineSafe, removeUploadedFiles, storedFilePath, upload } from '../lib/uploads';
 import { audit } from '../lib/audit';
+import { sendOrderReadyEmail } from '../lib/mail';
 
 const router = Router();
 
@@ -162,6 +163,8 @@ router.post(
     try {
       await Promise.all(allUploads.map(compressUploadedImage));
       const body = normaliseSpec(parse(createSchema, parseMultipartData(req)));
+      if (user.role === 'customer' && body.unitRate <= 0) throw badRequest('unitRate: Customers must enter a unit rate greater than zero');
+      if (body.advance > body.unitRate * body.quantity) throw badRequest('advance: Advance cannot exceed the order total');
       if (startOfDay(body.dueDate) < startOfToday()) throw badRequest('dueDate: Delivery date cannot be in the past');
       if (body.advance > 0 && body.advanceMethod !== 'Cash' && !uploaded?.advanceProof?.[0]) throw badRequest('advanceProof: Upload proof of payment for non-cash advances');
       if (body.advance === 0 && uploaded?.advanceProof?.[0]) throw badRequest('advanceProof: Add an advance amount before uploading proof');
@@ -186,7 +189,8 @@ router.post(
       const customer = await Customer.findById(customerId).lean();
 
       const isCustomer = user.role === 'customer';
-      const unitRate = isCustomer ? 0 : body.unitRate;
+      // Customers submit their quoted rate when placing an order; staff may also set it later.
+      const unitRate = body.unitRate;
       const settings = await getSettings();
       const seq = await nextSequence('order', 26101);
       const files = [
@@ -218,7 +222,7 @@ router.post(
       order.status = computeStatus(order);
       await order.save();
 
-      if (!isCustomer && body.advance > 0) {
+      if (body.advance > 0) {
         await Payment.create({
           order: order._id,
           customer: customerId,
@@ -227,9 +231,14 @@ router.post(
           proof: uploaded?.advanceProof?.[0] ? proofEntry(uploaded.advanceProof[0], user) : undefined,
           note: 'Advance received at order registration',
           recordedBy: user.id,
+          status: isCustomer ? 'pending' : 'verified',
+          verifiedBy: isCustomer ? null : user.id,
+          verifiedAt: isCustomer ? null : new Date(),
         });
-        order.amountPaid = body.advance;
-        await order.save();
+        if (!isCustomer) {
+          order.amountPaid = body.advance;
+          await order.save();
+        }
       }
 
       await audit(user, 'order.created', 'Order', String(order._id), `Created order ${order.orderNo} for ${customer?.name} (${order.quantity} sets)`);
@@ -374,11 +383,46 @@ router.post('/:id/advance', requirePermission('orders.stage.complete'), async (r
   if (from === 'design' && cuttingStatus !== 'completed') {
     throw conflict('Printing cannot start until Cutting marks this order complete');
   }
+  if (from === 'design' && !order.designChecklist?.playerListVerified) {
+    throw conflict('Design cannot be completed until the player list checklist is verified');
+  }
   order.stage = to;
   order.history.push({ from, to, by: user.id, byName: user.name, note, at: new Date() } as never);
   order.status = computeStatus(order);
   await order.save();
   await audit(user, 'order.stage_advanced', 'Order', String(order._id), `${order.orderNo}: ${STAGE_LABELS[from]} → ${STAGE_LABELS[to]}`);
+  if (to === 'ready') {
+    const customerDetails = await Customer.findById(order.customer).select('name email').lean();
+    if (customerDetails?.email) {
+      try {
+        await sendOrderReadyEmail({ to: customerDetails.email, customerName: customerDetails.name, orderNo: order.orderNo, quantity: order.quantity, balance: Math.max(0, order.totalAmount - order.amountPaid) });
+        await audit(user, 'order.ready_email_sent', 'Order', String(order._id), `Sent ready-for-dispatch email for ${order.orderNo}`);
+      } catch (error) {
+        console.error(`Ready email failed for ${order.orderNo}`, error);
+      }
+    }
+  }
+  res.json(await respond(order, user));
+});
+
+router.post('/:id/design/checklist', requirePermission('orders.stage.complete'), async (req, res) => {
+  const user = currentUser(req);
+  const order = await loadOrderForUser(assertObjectId(req.params.id, 'Order'), user);
+  if (order.stage !== 'design') throw conflict('The player list checklist is only available during Design');
+  if (!canCompleteStage(user, 'design')) throw forbidden('Only the Design team or the owner can verify the player list');
+  const { playerListVerified } = parse(z.object({ playerListVerified: z.boolean() }), req.body ?? {});
+  if (playerListVerified) {
+    const hasImage = order.playerListMode === 'image' && order.files.some((file) => file.kind === 'player-list');
+    const hasManualList = order.playerListMode === 'manual' && order.players.length === order.quantity;
+    if (!hasImage && !hasManualList) throw conflict(order.playerListMode === 'image' ? 'Upload the player list image before verifying it' : `Enter all ${order.quantity} player rows before verifying the list`);
+  }
+  order.designChecklist = {
+    playerListVerified,
+    playerListVerifiedAt: playerListVerified ? new Date() : null,
+    playerListVerifiedByName: playerListVerified ? user.name : '',
+  } as never;
+  await order.save();
+  await audit(user, playerListVerified ? 'order.player_list_verified' : 'order.player_list_unverified', 'Order', String(order._id), `${playerListVerified ? 'Verified' : 'Reset'} player list checklist for ${order.orderNo}`);
   res.json(await respond(order, user));
 });
 
@@ -393,13 +437,8 @@ router.post('/:id/cutting/complete', requirePermission('orders.stage.complete'),
   order.cuttingStatus = 'completed';
   order.cuttingCompletedAt = new Date();
   order.cuttingCompletedByName = user.name;
-  if (order.stage === 'design') {
-    order.stage = 'printing';
-    order.history.push({ from: 'design', to: 'printing', by: user.id, byName: user.name, note: 'Cutting completed; moved to Printing', at: new Date() } as never);
-    order.status = computeStatus(order);
-  }
   await order.save();
-  await audit(user, 'order.cutting_completed', 'Order', String(order._id), `Completed Cutting for ${order.orderNo}${order.stage === 'printing' ? ' and moved it to Printing' : ''}`);
+  await audit(user, 'order.cutting_completed', 'Order', String(order._id), `Completed Cutting for ${order.orderNo}`);
   res.json(await respond(order, user));
 });
 
@@ -431,9 +470,7 @@ router.post('/:id/deliver', requirePermission('orders.deliver'), async (req, res
   const order = await loadOrderForUser(assertObjectId(req.params.id, 'Order'), user);
   const body = parse(deliverSchema, req.body);
   if (order.stage !== 'ready') throw conflict('Only orders that are ready to dispatch can be delivered');
-  if (!order.totalAmount || order.amountPaid < order.totalAmount) {
-    throw conflict('Dispatch is blocked until the order is fully paid');
-  }
+  if (!order.totalAmount) throw conflict('Set the order price before dispatching');
   const previouslyPacked = order.delivery?.packedQuantity ?? 0;
   const totalPacked = previouslyPacked + body.packedQuantity;
   if (totalPacked > order.quantity) {

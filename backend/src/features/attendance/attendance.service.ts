@@ -8,6 +8,9 @@ import { Attendance, type AttendanceStatus } from './attendance.model';
 function toDto(record: Record<string, any>) {
   const user = record.user && typeof record.user === 'object' ? record.user : null;
   const approver = record.approvedBy && typeof record.approvedBy === 'object' ? record.approvedBy : null;
+  const workedMinutes = record.status === 'approved' && record.checkOutAt
+    ? Math.max(0, Math.floor((new Date(record.checkOutAt).getTime() - new Date(record.checkInAt).getTime()) / 60000))
+    : 0;
   return {
     id: String(record._id),
     user: {
@@ -23,25 +26,69 @@ function toDto(record: Record<string, any>) {
     approvedBy: approver ? { id: String(approver._id), name: approver.name } : null,
     rejectionReason: record.rejectionReason ?? '',
     createdAt: record.createdAt,
+    workedMinutes,
   };
 }
 
-export async function listAttendance(user: AuthUser, query: Record<string, unknown>) {
-  const canReviewAll = user.permissions.includes('attendance.approve');
-  const { page, limit, skip } = pagination(query, canReviewAll ? 50 : 30);
-  const q = query as Record<string, string | undefined>;
-  const filter: Record<string, unknown> = canReviewAll ? {} : { user: user.id };
-  if (q.status && ['pending', 'approved', 'rejected'].includes(q.status)) filter.status = q.status;
-  if (q.search?.trim() && canReviewAll) {
-    const rx = { $regex: escapeRegex(q.search.trim()), $options: 'i' };
-    const users = await User.find({ $or: [{ name: rx }, { email: rx }] }).select('_id').limit(200).lean();
-    filter.user = { $in: users.map((item) => item._id) };
+function dateRange(query: Record<string, string | undefined>) {
+  const filter: Record<string, unknown> = {};
+  if (query.from) {
+    const from = new Date(`${query.from}T00:00:00`);
+    if (Number.isNaN(from.getTime())) throw badRequest('from: Invalid start date');
+    filter.$gte = from;
   }
+  if (query.to) {
+    const to = new Date(`${query.to}T23:59:59.999`);
+    if (Number.isNaN(to.getTime())) throw badRequest('to: Invalid end date');
+    filter.$lte = to;
+  }
+  if (Object.keys(filter).length) return { checkInAt: filter };
+  return {};
+}
+
+function sortFor(query: Record<string, string | undefined>) {
+  const direction = query.direction === 'asc' ? 1 : -1;
+  const field = query.sort === 'checkOut' ? 'checkOutAt' : query.sort === 'status' ? 'status' : 'checkInAt';
+  return { [field]: direction } as Record<string, 1 | -1>;
+}
+
+async function attendanceFilter(user: AuthUser, query: Record<string, string | undefined>) {
+  const canReviewAll = user.permissions.includes('attendance.approve');
+  const filter: Record<string, unknown> = canReviewAll ? {} : { user: user.id };
+  if (query.userId && canReviewAll) {
+    if (!Types.ObjectId.isValid(query.userId)) throw badRequest('userId: Invalid user');
+    filter.user = query.userId;
+  }
+  if (query.status && ['pending', 'approved', 'rejected'].includes(query.status)) filter.status = query.status;
+  if (query.search?.trim() && canReviewAll) {
+    const rx = { $regex: escapeRegex(query.search.trim()), $options: 'i' };
+    const users = await User.find({ $or: [{ name: rx }, { email: rx }] }).select('_id').limit(200).lean();
+    const matchingUsers = { user: { $in: users.map((item) => item._id) } };
+    if (filter.user) filter.$and = [{ user: filter.user }, matchingUsers];
+    else filter.user = matchingUsers.user;
+  }
+  const range = dateRange(query);
+  if (range.checkInAt) filter.checkInAt = range.checkInAt;
+  return { filter, canReviewAll };
+}
+
+export async function listAttendance(user: AuthUser, query: Record<string, unknown>) {
+  const q = query as Record<string, string | undefined>;
+  const { filter, canReviewAll } = await attendanceFilter(user, q);
+  const { page, limit, skip } = pagination(query, canReviewAll ? 50 : 30);
   const [records, total] = await Promise.all([
-    Attendance.find(filter).populate('user', 'name email role').populate('approvedBy', 'name').sort({ checkInAt: -1 }).skip(skip).limit(limit).lean(),
+    Attendance.find(filter).populate('user', 'name email role').populate('approvedBy', 'name').sort(sortFor(q)).skip(skip).limit(limit).lean(),
     Attendance.countDocuments(filter),
   ]);
-  return { records: records.map(toDto), total, page, limit };
+  const users = canReviewAll ? await User.find({ active: true, role: { $ne: 'customer' } }).select('name email role').sort({ name: 1 }).lean() : [];
+  return { records: records.map(toDto), total, page, limit, users: users.map((item) => ({ id: String(item._id), name: item.name, email: item.email, role: item.role })) };
+}
+
+export async function exportAttendance(user: AuthUser, query: Record<string, unknown>) {
+  const q = query as Record<string, string | undefined>;
+  const { filter } = await attendanceFilter(user, q);
+  const records = await Attendance.find(filter).populate('user', 'name email role').populate('approvedBy', 'name').sort(sortFor(q)).lean();
+  return records.map(toDto);
 }
 
 export async function checkIn(user: AuthUser) {

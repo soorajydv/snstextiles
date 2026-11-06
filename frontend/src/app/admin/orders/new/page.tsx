@@ -40,7 +40,7 @@ export default function NewOrderPage() {
   const [shortsColor, setShortsColor] = useState('');
   const [quantity, setQuantity] = useState(18);
   const [dueDate, setDueDate] = useState(toInputDate(defaultDue));
-  const [unitRate, setUnitRate] = useState('1800');
+  const [unitRate, setUnitRate] = useState(isCustomer ? '' : '1800');
   const [advance, setAdvance] = useState('0');
   const [advanceMethod, setAdvanceMethod] = useState(meta.paymentMethods[0]);
   const [comments, setComments] = useState('');
@@ -139,7 +139,7 @@ export default function NewOrderPage() {
       toast('Please fix the upload errors before submitting.', 'error');
       return;
     }
-    if (!isCustomer && Number(advance) > 0 && advanceMethod !== 'Cash' && !advanceProof) {
+    if (Number(advance) > 0 && advanceMethod !== 'Cash' && !advanceProof) {
       const message = 'Upload proof of payment for non-cash advances.';
       setUploadErrors((current) => ({ ...current, advanceProof: message }));
       toast(message, 'error');
@@ -168,8 +168,8 @@ export default function NewOrderPage() {
       shortsColor: plainShorts ? shortsColor : '',
       quantity: qty,
       dueDate,
-      unitRate: isCustomer ? 0 : Number(unitRate) || 0,
-      advance: isCustomer ? 0 : Number(advance) || 0,
+      unitRate: Number(unitRate) || 0,
+      advance: Number(advance) || 0,
       advanceMethod,
       playerListMode,
       players: playerListMode === 'manual' ? filledPlayers : [],
@@ -272,25 +272,21 @@ export default function NewOrderPage() {
             <Field label="Requested delivery date *" error={fieldErrors.dueDate}>
               <input type="date" required min={toInputDate(new Date())} value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
             </Field>
-            {!isCustomer && (
-              <>
-                <Field label="Unit rate (NPR)" hint={`Order total: ${fmtMoney((Number(unitRate) || 0) * qty)}`}>
-                  <input type="number" min={0} step="any" value={unitRate} onChange={(e) => setUnitRate(e.target.value)} />
-                </Field>
-                <Field label="Advance received (NPR)" error={fieldErrors.advance}>
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    <input type="number" min={0} step="any" value={advance} onChange={(e) => setAdvance(e.target.value)} />
-                    <select value={advanceMethod} onChange={(e) => setAdvanceMethod(e.target.value)} style={{ width: 130 }} aria-label="Advance method">
-                      {meta.paymentMethods.map((m) => <option key={m}>{m}</option>)}
-                    </select>
-                  </div>
-                </Field>
-                <Field label="Advance proof image" hint={Number(advance) <= 0 ? 'Enter an advance amount first' : advanceMethod === 'Cash' ? 'Optional for cash advances · PNG, JPG or JPEG' : 'Required for non-cash advances · PNG, JPG or JPEG'} error={uploadErrors.advanceProof}>
-                  <input type="file" accept="image/png,image/jpeg" disabled={Number(advance) <= 0} onChange={(e) => { selectAdvanceProof(e.target.files?.[0]); e.currentTarget.value = ''; }} />
-                  {advanceProof && <LocalFilePreview file={advanceProof} />}
-                </Field>
-              </>
-            )}
+            <Field label="Unit rate (NPR) *" hint={`Order total: ${fmtMoney((Number(unitRate) || 0) * qty)}`} error={fieldErrors.unitRate}>
+              <input type="number" min={1} step="any" required={isCustomer} value={unitRate} onChange={(e) => setUnitRate(e.target.value)} />
+            </Field>
+            <Field label="Advance received (NPR)" error={fieldErrors.advance}>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <input type="number" min={0} step="any" max={(Number(unitRate) || 0) * qty} value={advance} onChange={(e) => setAdvance(e.target.value)} />
+                <select value={advanceMethod} onChange={(e) => setAdvanceMethod(e.target.value)} style={{ width: 130 }} aria-label="Advance method">
+                  {meta.paymentMethods.map((m) => <option key={m}>{m}</option>)}
+                </select>
+              </div>
+            </Field>
+            <Field label="Advance proof image" hint={Number(advance) <= 0 ? 'Enter an advance amount first' : advanceMethod === 'Cash' ? 'Optional for cash advances · PNG, JPG or JPEG' : 'Required for non-cash advances · PNG, JPG or JPEG'} error={uploadErrors.advanceProof}>
+              <input type="file" accept="image/png,image/jpeg" disabled={Number(advance) <= 0} onChange={(e) => { selectAdvanceProof(e.target.files?.[0]); e.currentTarget.value = ''; }} />
+              {advanceProof && <LocalFilePreview file={advanceProof} />}
+            </Field>
           </div>
         </section>
 

@@ -111,6 +111,16 @@ export async function sendCustomerRegistrationEmail(details: {
   });
 }
 
+export async function sendOrderReadyEmail(details: { to: string; customerName: string; orderNo: string; quantity: number; balance: number }) {
+  const orderUrl = `${env.appUrl}/orders`;
+  await sendEmail({
+    to: details.to,
+    subject: `${details.orderNo} is ready for dispatch`,
+    text: `Hello ${details.customerName},\n\nYour order ${details.orderNo} for ${details.quantity} sets is ready for dispatch.\nBalance due: NPR ${details.balance.toLocaleString('en-IN')}\n\nView your order: ${orderUrl}`,
+    html: `<div style="font-family:Arial,sans-serif;line-height:1.6;color:#18241f;max-width:560px"><h2>Your order is ready</h2><p>Hello ${escapeHtml(details.customerName)},</p><p>Order <strong>${escapeHtml(details.orderNo)}</strong> for ${details.quantity} sets is ready for dispatch.</p><p>Balance due: <strong>NPR ${details.balance.toLocaleString('en-IN')}</strong></p><p><a href="${escapeHtml(orderUrl)}" style="display:inline-block;background:#173d35;color:#fff;padding:11px 16px;border-radius:7px;text-decoration:none">View order</a></p></div>`,
+  });
+}
+
 function escapeHtml(value: string) {
   return value.replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character] ?? character);
 }

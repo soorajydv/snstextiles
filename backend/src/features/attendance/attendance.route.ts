@@ -5,12 +5,14 @@ import {
   checkInController,
   checkOutController,
   listAttendanceController,
+  exportAttendanceController,
   rejectCheckInController,
 } from './attendance.controller';
 
 const router = Router();
 router.use(requirePermission('attendance.view'));
 router.get('/', listAttendanceController);
+router.get('/export.csv', exportAttendanceController);
 router.post('/check-in', requirePermission('attendance.checkin'), checkInController);
 router.post('/check-out', requirePermission('attendance.checkout'), checkOutController);
 router.post('/:id/approve', requirePermission('attendance.approve'), approveCheckInController);

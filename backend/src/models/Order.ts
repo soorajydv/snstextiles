@@ -79,6 +79,11 @@ const orderSchema = new Schema(
     cuttingStatus: { type: String, enum: ['pending', 'completed'], default: 'pending', index: true },
     cuttingCompletedAt: { type: Date, default: null },
     cuttingCompletedByName: { type: String, default: '' },
+    designChecklist: {
+      playerListVerified: { type: Boolean, default: false },
+      playerListVerifiedAt: { type: Date, default: null },
+      playerListVerifiedByName: { type: String, default: '' },
+    },
     comments: { type: String, trim: true, default: '' },
     files: { type: [fileSchema], default: [] },
 

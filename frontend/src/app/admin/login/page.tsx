@@ -61,6 +61,7 @@ function LoginForm() {
       </Field>
       <button className="btn primary block" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>
       <div style={{ textAlign: 'right', marginTop: 10 }}><a className="link-btn" href={appPath('/forgot-password')}>Forgot password?</a></div>
+      <div style={{ textAlign: 'center', marginTop: 16 }}><a className="link-btn" href={appPath('/register')}>Create customer account</a></div>
       {process.env.NODE_ENV !== 'production' && (
         <div className="card" style={{ marginTop: 6 }}>
           <div className="eyebrow" style={{ marginBottom: 8 }}>Demo accounts · password Password@123</div>

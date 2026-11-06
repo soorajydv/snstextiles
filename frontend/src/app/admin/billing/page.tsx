@@ -119,6 +119,43 @@ function Billing() {
     }
   }
 
+  async function verifyPayment(p: Payment) {
+    try {
+      await api(`/payments/${p.id}/verify`, { method: 'POST' });
+      toast('Payment verified');
+      payments.reload();
+      orders.reload();
+    } catch (err) {
+      toast(errorMessage(err), 'error');
+    }
+  }
+
+  async function rejectPayment(p: Payment) {
+    const reason = window.prompt('Reason for rejecting this payment:');
+    if (!reason?.trim()) return;
+    try {
+      await api(`/payments/${p.id}/reject`, { method: 'POST', body: { reason } });
+      toast('Payment rejected');
+      payments.reload();
+      orders.reload();
+    } catch (err) {
+      toast(errorMessage(err), 'error');
+    }
+  }
+
+  async function reversePayment(p: Payment) {
+    const reason = window.prompt(`Reason for reversing ${fmtMoney(p.amount)} on ${p.order.orderNo}:`);
+    if (!reason?.trim()) return;
+    try {
+      await api(`/payments/${p.id}/reverse`, { method: 'POST', body: { reason } });
+      toast('Payment reversed');
+      payments.reload();
+      orders.reload();
+    } catch (err) {
+      toast(errorMessage(err), 'error');
+    }
+  }
+
   return (
     <>
       <PageHeader
@@ -188,7 +225,7 @@ function Billing() {
           {!payments.data ? <Spinner /> : !payments.data.payments.length ? <Empty>No payments recorded.</Empty> : (
             <div className="table-wrap">
               <table>
-                <thead><tr><th>Date</th><th>Order</th><th>Customer</th><th>Method</th><th>Reference</th><th>Proof</th><th className="num">Amount</th><th>Recorded by</th>{meta.permissions.includes('payments.delete') && <th />}</tr></thead>
+                <thead><tr><th>Date</th><th>Order</th><th>Customer</th><th>Method</th><th>Reference</th><th>Proof</th><th className="num">Amount</th><th>Status</th><th>Recorded by</th>{(meta.permissions.includes('payments.verify') || meta.permissions.includes('payments.delete')) && <th />}</tr></thead>
                 <tbody>
                   {payments.data.payments.map((p) => (
                     <tr key={p.id}>
@@ -199,8 +236,9 @@ function Billing() {
                       <td>{p.reference || '—'}</td>
                       <td>{p.proof ? <a className="link-btn" href={assetPath(p.proof.url)} target="_blank" rel="noreferrer">View proof</a> : '—'}</td>
                       <td className="num"><strong>{fmtMoney(p.amount)}</strong></td>
+                      <td><Badge>{p.status === 'pending' ? 'Pending verification' : p.status === 'rejected' ? 'Rejected' : p.status === 'reversed' ? 'Reversed' : 'Verified'}</Badge>{p.rejectionReason && <div className="muted small">{p.rejectionReason}</div>}{p.reversalReason && <div className="muted small">{p.reversalReason}</div>}</td>
                       <td>{p.recordedBy || '—'}</td>
-                      {meta.permissions.includes('payments.delete') && <td><button className="btn small danger" onClick={() => setPaymentToDelete(p)}>Delete</button></td>}
+                      {(meta.permissions.includes('payments.verify') || meta.permissions.includes('payments.delete') || meta.permissions.includes('payments.reverse')) && <td>{p.status === 'pending' && meta.permissions.includes('payments.verify') && <><button className="btn small primary" onClick={() => verifyPayment(p)}>Verify</button>{' '}<button className="btn small danger" onClick={() => rejectPayment(p)}>Reject</button>{' '}</>}{p.status === 'verified' && meta.permissions.includes('payments.reverse') && <button className="btn small danger" onClick={() => reversePayment(p)}>Reverse</button>}{['rejected', 'pending'].includes(p.status) && meta.permissions.includes('payments.delete') && <button className="btn small danger" onClick={() => setPaymentToDelete(p)}>Delete</button>}</td>}
                     </tr>
                   ))}
                 </tbody>

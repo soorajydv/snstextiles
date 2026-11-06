@@ -11,6 +11,7 @@ const itemSchema = new Schema(
     onHand: { type: Number, default: 0 },
     reorderLevel: { type: Number, default: 0, min: 0 },
     active: { type: Boolean, default: true },
+    supplier: { type: Schema.Types.ObjectId, ref: 'Supplier', default: null },
   },
   { timestamps: true },
 );

@@ -46,6 +46,19 @@ export async function login(identifier: string, password: string) {
   return { token, user: await getProfile(String(user._id)) };
 }
 
+export async function registerCustomer(input: { businessName: string; contactPerson: string; phone: string; email: string; username: string; password: string }) {
+  if (await User.exists({ $or: [{ email: input.email }, { username: input.username }] })) throw conflict('An account already exists with this email or username');
+  const customer = await Customer.create({ name: input.businessName, contactPerson: input.contactPerson, phone: input.phone, email: input.email });
+  try {
+    const user = await User.create({ name: input.contactPerson, username: input.username, email: input.email, phone: input.phone, role: 'customer', customer: customer._id, passwordHash: await bcrypt.hash(input.password, 10) });
+    await audit(null, 'customer.registered', 'User', String(user._id), `Customer ${input.businessName} registered an account`);
+    return { id: String(user._id), message: 'Registration complete. You can now sign in.' };
+  } catch (error) {
+    await customer.deleteOne();
+    throw error;
+  }
+}
+
 export async function requestPasswordReset(email: string) {
   const user = await User.findOne({ email }).select('+passwordResetTokenHash +passwordResetExpiresAt');
   if (!user || !user.active) return null;
