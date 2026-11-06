@@ -242,9 +242,13 @@ export default function OrderDetailPage() {
               {order.shortsColor && <div><div className="k">Shorts colour</div><div className="v">{order.shortsColor}</div></div>}
               <div><div className="k">Delivery date</div><div className="v"><DueDate order={order} /></div></div>
               <div><div className="k">Customer</div><div className="v">{order.customer.name}{order.customer.phone ? ` · ${order.customer.phone}` : ''}</div></div>
+              {order.source === 'website' && <div><div className="k">Website order</div><div className="v">{order.productName}{order.checkoutRef ? ` · ${order.checkoutRef}` : ''}</div></div>}
+              {order.source === 'website' && order.shipping?.method && (
+                <div><div className="k">Delivery</div><div className="v">{order.shipping.method}{order.shipping.address ? ` — ${order.shipping.address}${order.shipping.city ? `, ${order.shipping.city}` : ''}` : ''}<div className="muted small">{order.shipping.recipient} · {order.shipping.phone}</div></div></div>
+              )}
             </div>
             {order.comments && (
-              <Notice style={{ marginTop: 16 }}><strong>Instructions:</strong> {order.comments}</Notice>
+              <Notice style={{ marginTop: 16 }}><strong>Instructions:</strong> <span style={{ whiteSpace: 'pre-line' }}>{order.comments}</span></Notice>
             )}
             {order.files.length > 0 && (
               <>

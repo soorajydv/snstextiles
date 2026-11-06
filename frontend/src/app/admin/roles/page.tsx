@@ -16,6 +16,7 @@ const PERMISSION_GROUPS: { label: string; permissions: Permission[] }[] = [
   { label: 'Payments & billing', permissions: ['payments.view', 'payments.record', 'payments.verify', 'payments.delete'] },
   { label: 'Inventory', permissions: ['inventory.view', 'inventory.manage', 'inventory.move', 'inventory.adjust'] },
   { label: 'Attendance', permissions: ['attendance.view', 'attendance.checkin', 'attendance.checkout', 'attendance.approve'] },
+  { label: 'Website', permissions: ['site.view', 'site.manage', 'site.enquiries'] },
   { label: 'Access control', permissions: ['users.manage', 'roles.manage', 'audit.view'] },
   { label: 'Platform', permissions: ['settings.view', 'settings.manage'] },
   { label: 'Account', permissions: ['profile.manage', 'account.delete'] },
@@ -57,6 +58,9 @@ const PERMISSION_DESCRIPTIONS: Record<Permission, string> = {
   'attendance.checkin': 'Submit check-in requests.',
   'attendance.checkout': 'Check out after an approved check-in.',
   'attendance.approve': 'Approve or reject employee check-ins.',
+  'site.view': 'View the website dashboard, products, pages, reviews and settings.',
+  'site.manage': 'Edit website products, categories, pages, blog posts, media, reviews and settings.',
+  'site.enquiries': 'Read and manage custom design requests and contact messages from the website.',
 };
 
 export default function RolesPage() {

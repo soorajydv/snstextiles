@@ -12,7 +12,7 @@ import { PwaInstallButton } from './PwaInstallButton';
 import { ConfirmModal } from './ui';
 import { appPath, assetPath } from '@/lib/paths';
 
-type NavItem = { href: string; label: string; icon: IconName; permission?: Permission };
+type NavItem = { href: string; label: string; icon: IconName; permission?: Permission; exact?: boolean };
 const NAV: { label: string; items: NavItem[] }[] = [
   {
     label: 'Workspace',
@@ -31,6 +31,20 @@ const NAV: { label: string; items: NavItem[] }[] = [
       { href: '/delivery', label: 'Delivery', icon: 'delivery', permission: 'orders.view' },
       { href: '/attendance', label: 'Attendance', icon: 'attendance', permission: 'attendance.view' },
       { href: '/reports', label: 'Reports', icon: 'chart', permission: 'reports.view' },
+    ],
+  },
+  {
+    label: 'Website',
+    items: [
+      { href: '/site', label: 'Website overview', icon: 'globe', permission: 'site.view', exact: true },
+      { href: '/site/orders', label: 'Website orders', icon: 'orders', permission: 'site.view' },
+      { href: '/site/products', label: 'Products', icon: 'tag', permission: 'site.view' },
+      { href: '/site/categories', label: 'Categories', icon: 'box', permission: 'site.view' },
+      { href: '/site/enquiries', label: 'Enquiries', icon: 'mail', permission: 'site.enquiries' },
+      { href: '/site/pages', label: 'Pages & blog', icon: 'file', permission: 'site.view' },
+      { href: '/site/reviews', label: 'Reviews', icon: 'star', permission: 'site.view' },
+      { href: '/site/subscribers', label: 'Subscribers', icon: 'users', permission: 'site.view' },
+      { href: '/site/settings', label: 'Website settings', icon: 'settings', permission: 'site.view' },
     ],
   },
   {
@@ -60,6 +74,7 @@ const TITLES: Record<string, string> = {
   profile: 'My profile',
   activity: 'Audit log',
   settings: 'Settings',
+  site: 'Website management',
 };
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -119,7 +134,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <div className="nav-label">{user.role === 'customer' && group.label === 'Administration' ? 'Account' : group.label}</div>
             <nav className="nav-group">
               {group.items.map((item) => (
-                <Link key={item.href} href={item.href} className={`nav-btn ${pathname.startsWith(appPath(item.href)) ? 'active' : ''}`}>
+                <Link key={item.href} href={item.href} className={`nav-btn ${(item.exact ? pathname === appPath(item.href) : pathname.startsWith(appPath(item.href))) ? 'active' : ''}`}>
                   <span className="nav-icon"><Icon name={item.icon} size={17} /></span>
                   <span className="nav-text">{user.role === 'customer' && item.href === '/orders' ? 'My orders' : item.label}</span>
                 </Link>

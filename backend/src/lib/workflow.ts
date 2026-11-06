@@ -121,6 +121,10 @@ export function serializeOrder(order: SerializableOrder, user: AuthUser) {
     status: o.status,
     history: o.history,
     delivery: o.delivery,
+    source: o.source ?? 'portal',
+    productName: o.productName ?? '',
+    checkoutRef: o.checkoutRef ?? '',
+    shipping: o.shipping ?? null,
     createdAt: o.createdAt,
     updatedAt: o.updatedAt,
   };

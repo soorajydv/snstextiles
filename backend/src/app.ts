@@ -17,6 +17,8 @@ import reportRoutes from './routes/reports';
 import { auditRouter, metaRouter, settingsRouter } from './routes/settings';
 import attendanceRoutes from './features/attendance/attendance.route';
 import roleRoutes from './routes/roles';
+import publicSiteRoutes from './features/site/site.public.route';
+import adminSiteRoutes from './features/site/site.admin.route';
 import { getSettings } from './models/Settings';
 import { storedFilePath } from './lib/uploads';
 
@@ -43,6 +45,8 @@ export function createApp() {
   });
 
   app.use('/api/auth', authRoutes);
+  // Public website: catalogue, content, enquiry forms and the signed-in checkout.
+  app.use('/api/public/site', publicSiteRoutes);
 
   const api = express.Router();
   api.use(requireAuth);
@@ -58,6 +62,7 @@ export function createApp() {
   api.use('/users', userRoutes);
   api.use('/settings', settingsRouter);
   api.use('/audit', auditRouter);
+  api.use('/site', adminSiteRoutes);
   app.use('/api', api);
 
   app.use(notFoundHandler);

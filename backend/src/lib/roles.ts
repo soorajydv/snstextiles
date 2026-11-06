@@ -21,6 +21,8 @@ export async function ensureSystemRoles() {
   // Clean up the removed permission separately; MongoDB cannot update the same
   // array path with both $setOnInsert and $pull in one operation.
   await RoleModel.updateMany({ key: { $in: ROLES } }, { $pull: { permissions: 'payments.reverse' } });
+  // The owner always holds every permission, including ones added after the role was first stored.
+  await RoleModel.updateOne({ key: 'owner' }, { $addToSet: { permissions: { $each: ROLE_PERMISSIONS.owner } } });
 }
 
 export async function permissionsForUserRole(role: string): Promise<Permission[]> {

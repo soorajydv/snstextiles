@@ -3,6 +3,7 @@ import { connectDb } from './db';
 import { createApp } from './app';
 import { seedIfEmpty } from './seed';
 import { ensureSystemRoles } from './lib/roles';
+import { ensureSiteDefaults } from './features/site/site.seed';
 import { User } from './models/user.model';
 
 async function migrateLegacyAvatars() {
@@ -20,6 +21,7 @@ async function main() {
   await connectDb(env.mongoUri);
   await migrateLegacyAvatars();
   await ensureSystemRoles();
+  await ensureSiteDefaults();
   if (process.env.SEED_ON_START === 'true') await seedIfEmpty();
   createApp().listen(env.port, () => {
     console.log(`SNS Textiles API listening on http://localhost:${env.port}`);

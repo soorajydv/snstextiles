@@ -112,6 +112,19 @@ const orderSchema = new Schema(
       issuedBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
     },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
+
+    /** Where the order was placed; website orders come from the public shop checkout. */
+    source: { type: String, enum: ['portal', 'website'], default: 'portal', index: true },
+    product: { type: Schema.Types.ObjectId, ref: 'SiteProduct', default: null },
+    productName: { type: String, trim: true, default: '' },
+    checkoutRef: { type: String, trim: true, default: '', index: true },
+    shipping: {
+      method: { type: String, trim: true, default: '' },
+      recipient: { type: String, trim: true, default: '' },
+      phone: { type: String, trim: true, default: '' },
+      address: { type: String, trim: true, default: '' },
+      city: { type: String, trim: true, default: '' },
+    },
   },
   { timestamps: true },
 );

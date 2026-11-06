@@ -111,6 +111,8 @@ router.get('/', requirePermission('orders.view'), async (req, res) => {
     filter.$and = [{ stage: q.stage }];
   }
   if (q.status) filter.status = q.status;
+  if (q.source === 'website') filter.source = 'website';
+  if (q.source === 'portal') filter.source = { $ne: 'website' };
   if (q.customer && user.role !== 'customer') filter.customer = assertObjectId(q.customer, 'Customer');
   if (q.due === 'overdue') {
     filter.dueDate = { $lt: startOfToday() };

@@ -8,12 +8,15 @@ import { connectDb } from './db';
 import { createApp } from './app';
 import { seedIfEmpty } from './seed';
 import { ensureSystemRoles } from './lib/roles';
+import { ensureSiteDefaults, seedDemoCatalogue } from './features/site/site.seed';
 
 async function main() {
   const mongo = await MongoMemoryServer.create();
   await connectDb(mongo.getUri('ss_textiles'));
   await ensureSystemRoles();
   await seedIfEmpty();
+  await ensureSiteDefaults();
+  await seedDemoCatalogue();
   const server = createApp().listen(env.port, () => {
     console.log(`SNS Textiles API (in-memory MongoDB) listening on http://localhost:${env.port}`);
   });

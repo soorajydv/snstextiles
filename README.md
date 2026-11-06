@@ -93,6 +93,37 @@ Design & confirmation ──(customer approves latest artwork)──▶ Printing
 - **Production roles never see prices.** Customers only ever see their own orders.
 - Every critical action (orders, approvals, stage moves, payments, invoices, deliveries, stock, users) is written to the audit log.
 
+## Public website & online shop
+
+The public site (`frontend/src/app/(site)`) replaces the old WordPress/WooCommerce store at snstextiles.com:
+shop with search, category filters, price range and sorting; product pages with sizes, neck/sleeve options,
+team names & numbers and reviews; cart; checkout; customer accounts; order tracking; custom-jersey and contact
+forms; blog; CMS pages (About, policies…); FAQ; `sitemap.xml` and `robots.txt`. Old WordPress URLs
+(`/product-category/…`, `/store`, `/blogs`, `/my-account`, root-level blog posts) redirect to their new addresses.
+
+**Checkout creates real production orders.** A signed-in customer's cart becomes one factory order per cart line
+(source `website`), priced from the catalogue on the server. Uploaded designs become order reference files, the size
+breakdown and names/numbers become the player roster, and an optional advance with a payment screenshot is recorded
+as a pending payment for accounts to verify. From there the normal design → approval → production → delivery workflow
+applies, and customers follow it in the portal.
+
+**Website management** is in the portal sidebar under *Website* (permissions `site.view`, `site.manage`,
+`site.enquiries`; the owner always has them): overview, website orders, products, categories, enquiries,
+pages & blog, reviews, newsletter subscribers and website settings (contact details, homepage hero/banner/story,
+FAQs, testimonials, gallery, checkout rules, payment instructions, SEO).
+
+Set `NEXT_PUBLIC_SITE_URL` (default `https://snstextiles.com`) for the sitemap and sharing links.
+
+### Moving the catalogue from WooCommerce
+
+1. In WordPress: *Products → All Products → Export* (all columns, all products) to CSV.
+2. Optionally download `/product-sitemap.xml` (and `product-sitemap2.xml`, …) so each product keeps its old URL.
+3. Portal → *Website → Products → Import from WooCommerce*, upload the files. Re-running updates instead of duplicating.
+4. Click *Download old images* to copy product photos off WordPress before switching it off.
+
+Policy pages (privacy, terms, shipping & returns, size guide) are created as drafts — write and publish them under
+*Website → Pages & blog*.
+
 ## Project layout
 
 ```

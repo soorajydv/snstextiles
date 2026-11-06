@@ -14,6 +14,7 @@ export const PERMISSIONS = [
   'roles.manage',
   'profile.manage', 'account.delete',
   'attendance.view', 'attendance.checkin', 'attendance.checkout', 'attendance.approve',
+  'site.view', 'site.manage', 'site.enquiries',
 ] as const;
 export type Permission = (typeof PERMISSIONS)[number];
 
@@ -28,7 +29,7 @@ export const ROLE_PERMISSIONS: Record<BuiltInRole, Permission[]> = {
   printing: ['dashboard.view', 'orders.view', 'orders.stage.complete', 'inventory.view', 'inventory.move', 'settings.view', ...staffAttendance, ...profilePermissions],
   stitching: ['dashboard.view', 'orders.view', 'orders.stage.complete', 'inventory.view', 'inventory.move', 'settings.view', ...staffAttendance, ...profilePermissions],
   finishing: ['dashboard.view', 'orders.view', 'orders.stage.complete', 'inventory.view', 'inventory.move', 'settings.view', ...staffAttendance, ...profilePermissions],
-  accounts: ['dashboard.view', 'orders.view', 'orders.create', 'orders.update', 'orders.invoice', 'customers.view', 'customers.manage', 'payments.view', 'payments.record', 'payments.verify', 'reports.view', 'settings.view', ...staffAttendance, ...profilePermissions],
+  accounts: ['dashboard.view', 'orders.view', 'orders.create', 'orders.update', 'orders.invoice', 'customers.view', 'customers.manage', 'payments.view', 'payments.record', 'payments.verify', 'reports.view', 'settings.view', 'site.view', 'site.enquiries', ...staffAttendance, ...profilePermissions],
   customer: ['dashboard.view', 'orders.view', 'orders.create', 'orders.approve', 'orders.feedback', 'payments.view', 'payments.record', 'settings.view', ...profilePermissions],
 };
 
