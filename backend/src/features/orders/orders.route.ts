@@ -1,23 +1,23 @@
 import fs from 'fs';
 import { Router, type Request } from 'express';
 import { z } from 'zod';
-import { Order, type OrderDoc } from '../models/Order';
-import { Customer } from '../models/Customer';
-import { Payment } from '../models/Payment';
-import { getSettings } from '../models/Settings';
-import { nextSequence } from '../models/Counter';
-import { currentUser, requirePermission, type AuthUser } from '../middleware/auth';
+import { Order, type OrderDoc } from './order.model';
+import { Customer } from '../customers/customer.model';
+import { Payment } from '../payments/payment.model';
+import { getSettings } from '../settings/settings.model';
+import { nextSequence } from '../../lib/counter';
+import { currentUser, requirePermission, type AuthUser } from '../../middleware/auth';
 import {
   DELIVERY_METHODS, NECK_TYPES, PAYMENT_METHODS, SIZES, SLEEVES, STAGE_LABELS, STAGES, type Stage,
-} from '../lib/constants';
-import { assertObjectId, badRequest, conflict, escapeRegex, forbidden, notFound, pagination, parse } from '../lib/http';
+} from '../../lib/constants';
+import { assertObjectId, badRequest, conflict, escapeRegex, forbidden, notFound, pagination, parse } from '../../lib/http';
 import {
   canCompleteStage, computeStatus, currentArtworkVersion, isArtworkApproved, loadOrderForUser, nextStage,
   orderScope, previousStage, serializeOrder,
-} from '../lib/workflow';
-import { compressUploadedImage, isInlineSafe, removeUploadedFiles, storedFilePath, upload } from '../lib/uploads';
-import { audit } from '../lib/audit';
-import { sendOrderReadyEmail } from '../lib/mail';
+} from './order.workflow';
+import { compressUploadedImage, isInlineSafe, removeUploadedFiles, storedFilePath, upload } from '../../lib/uploads';
+import { audit } from '../audit/audit.service';
+import { sendOrderReadyEmail } from '../../lib/mail';
 
 const router = Router();
 

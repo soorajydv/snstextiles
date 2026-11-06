@@ -132,11 +132,12 @@ backend/src
   index.ts / dev-memory.ts   Entry points (real MongoDB / in-memory)
   seed.ts                Demo data
   config/env.ts          Environment configuration
-  lib/constants.ts       Roles, stages, product configs, sizes, payment methods
-  lib/workflow.ts        Status rules, approval gate, row-level scoping, order serialization
+  lib/                   Shared helpers: constants (roles, stages, sizes…), http errors, uploads, mail, urls, counters
   middleware/            Auth (JWT cookie, role guard) and error handling
-  models/                Mongoose schemas
-  routes/                auth, users, customers, orders, payments, inventory, dashboard, reports, settings/meta/audit
+  features/<area>/       One folder per area with its route, model(s) and service/validation files:
+                           attendance, audit, auth, customers, dashboard, inventory, orders (incl. order.workflow.ts:
+                           status rules, approval gate, row-level scoping, serialization), payments, reports, roles,
+                           settings (settings + meta routes), site (public website & website management), users
 frontend/src
   app/login              Sign-in
   app/(app)/...          Authenticated pages (dashboard, orders, production, customers, inventory, billing, delivery, reports, users, activity, settings)

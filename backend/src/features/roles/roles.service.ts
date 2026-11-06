@@ -1,5 +1,5 @@
-import { Role as RoleModel } from '../models/Role';
-import { permissionsForRole, ROLE_PERMISSIONS, ROLES, type Permission } from './constants';
+import { Role as RoleModel } from './role.model';
+import { permissionsForRole, ROLE_PERMISSIONS, ROLES, type Permission } from '../../lib/constants';
 
 const BUILT_IN_NAMES: Record<(typeof ROLES)[number], string> = {
   owner: 'Owner / Admin',

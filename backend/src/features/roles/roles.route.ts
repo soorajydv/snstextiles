@@ -1,12 +1,12 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { Role } from '../models/Role';
-import { User } from '../models/user.model';
-import { currentUser, requirePermission } from '../middleware/auth';
-import { PERMISSIONS } from '../lib/constants';
-import { listRoles } from '../lib/roles';
-import { badRequest, conflict, notFound, parse } from '../lib/http';
-import { audit } from '../lib/audit';
+import { Role } from './role.model';
+import { User } from '../users/user.model';
+import { currentUser, requirePermission } from '../../middleware/auth';
+import { PERMISSIONS } from '../../lib/constants';
+import { listRoles } from './roles.service';
+import { badRequest, conflict, notFound, parse } from '../../lib/http';
+import { audit } from '../audit/audit.service';
 
 const router = Router();
 router.use(requirePermission('roles.manage'));

@@ -1,5 +1,5 @@
 import { Schema, model } from 'mongoose';
-import { PERMISSIONS } from '../lib/constants';
+import { PERMISSIONS } from '../../lib/constants';
 
 const roleSchema = new Schema(
   {

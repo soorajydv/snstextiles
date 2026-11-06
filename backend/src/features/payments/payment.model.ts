@@ -1,5 +1,5 @@
 import { Schema, model } from 'mongoose';
-import { PAYMENT_METHODS } from '../lib/constants';
+import { PAYMENT_METHODS } from '../../lib/constants';
 
 export const PAYMENT_STATUSES = ['pending', 'verified', 'rejected', 'reversed'] as const;
 export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];

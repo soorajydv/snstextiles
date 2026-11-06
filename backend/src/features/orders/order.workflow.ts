@@ -1,10 +1,10 @@
 import { Types } from 'mongoose';
-import { FINANCE_ROLES, ROLE_STAGES, STAGE_DEPARTMENT, STAGE_LABELS, STAGES, type Stage } from './constants';
-import type { AuthUser } from '../middleware/auth';
-import type { OrderAttrs, OrderDoc } from '../models/Order';
-import { forbidden, notFound } from './http';
-import { Order } from '../models/Order';
-import { publicUrl } from './urls';
+import { FINANCE_ROLES, ROLE_STAGES, STAGE_DEPARTMENT, STAGE_LABELS, STAGES, type Stage } from '../../lib/constants';
+import type { AuthUser } from '../../middleware/auth';
+import type { OrderAttrs, OrderDoc } from './order.model';
+import { forbidden, notFound } from '../../lib/http';
+import { Order } from './order.model';
+import { publicUrl } from '../../lib/urls';
 
 type OrderLike = Pick<OrderAttrs, 'artworks' | 'approval' | 'feedback' | 'stage'>;
 

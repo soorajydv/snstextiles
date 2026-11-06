@@ -1,11 +1,11 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { InventoryItem, StockMovement, INVENTORY_CATEGORIES } from '../models/Inventory';
-import { Order } from '../models/Order';
-import { currentUser, requireAnyPermission, requirePermission } from '../middleware/auth';
-import { assertObjectId, badRequest, conflict, escapeRegex, notFound, pagination, parse } from '../lib/http';
-import { audit } from '../lib/audit';
-import { Supplier } from '../models/Supplier';
+import { InventoryItem, StockMovement, INVENTORY_CATEGORIES } from './inventory.model';
+import { Order } from '../orders/order.model';
+import { currentUser, requireAnyPermission, requirePermission } from '../../middleware/auth';
+import { assertObjectId, badRequest, conflict, escapeRegex, notFound, pagination, parse } from '../../lib/http';
+import { audit } from '../audit/audit.service';
+import { Supplier } from './supplier.model';
 
 const router = Router();
 router.use(requirePermission('inventory.view'));

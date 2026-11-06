@@ -1,7 +1,7 @@
 import { Types } from 'mongoose';
-import { audit } from '../../lib/audit';
+import { audit } from '../audit/audit.service';
 import { badRequest, conflict, escapeRegex, notFound, pagination } from '../../lib/http';
-import { User } from '../../models/user.model';
+import { User } from '../users/user.model';
 import type { AuthUser } from '../../middleware/auth';
 import { Attendance, type AttendanceStatus } from './attendance.model';
 

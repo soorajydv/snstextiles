@@ -5,19 +5,19 @@ import sharp from 'sharp';
 import type { Model, PipelineStage } from 'mongoose';
 import { Types } from 'mongoose';
 import { env } from '../../config/env';
-import { audit } from '../../lib/audit';
+import { audit } from '../audit/audit.service';
 import { STAGE_LABELS, type Stage } from '../../lib/constants';
 import { badRequest, escapeRegex, forbidden, notFound } from '../../lib/http';
 import { sendEmail } from '../../lib/mail';
 import { storedFilePath } from '../../lib/uploads';
-import { computeStatus } from '../../lib/workflow';
+import { computeStatus } from '../orders/order.workflow';
 import type { AuthUser } from '../../middleware/auth';
-import { nextSequence } from '../../models/Counter';
-import { Customer } from '../../models/Customer';
-import { Order } from '../../models/Order';
-import { Payment } from '../../models/Payment';
-import { getSettings } from '../../models/Settings';
-import { User } from '../../models/user.model';
+import { nextSequence } from '../../lib/counter';
+import { Customer } from '../customers/customer.model';
+import { Order } from '../orders/order.model';
+import { Payment } from '../payments/payment.model';
+import { getSettings } from '../settings/settings.model';
+import { User } from '../users/user.model';
 import {
   SHOP_SIZES, SiteCategory, SiteMedia, SiteProduct, SiteReview, getSiteSettings,
 } from './site.models';

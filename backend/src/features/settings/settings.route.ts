@@ -1,16 +1,10 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { getSettings, Settings } from '../models/Settings';
-import { AuditLog } from '../models/AuditLog';
-import { currentUser, requirePermission } from '../middleware/auth';
-import {
-  DELIVERY_METHODS, NECK_TYPES, PAYMENT_METHODS, PERMISSIONS, PRODUCT_CONFIGS, SIZES, SLEEVES, STAGE_LABELS, STAGES,
-} from '../lib/constants';
-import { listRoles, permissionsForUserRole } from '../lib/roles';
-import { INVENTORY_CATEGORIES } from '../models/Inventory';
-import { badRequest, escapeRegex, pagination, parse } from '../lib/http';
-import { audit } from '../lib/audit';
-import { avatarUpload, removeStoredFile, storedFilePath } from '../lib/uploads';
+import { getSettings, Settings } from './settings.model';
+import { currentUser, requirePermission } from '../../middleware/auth';
+import { badRequest, parse } from '../../lib/http';
+import { audit } from '../audit/audit.service';
+import { avatarUpload, removeStoredFile, storedFilePath } from '../../lib/uploads';
 
 export const settingsRouter = Router();
 
@@ -96,53 +90,4 @@ settingsRouter.delete('/business-logo', requirePermission('settings.manage'), as
   removeStoredFile(previous);
   await audit(user, 'settings.business_logo_removed', 'Settings', 'global', 'Removed the business profile logo');
   res.json({ settings: dto(settings.toObject()) });
-});
-
-/** Static option lists so the frontend never hard-codes business vocabulary. */
-export const metaRouter = Router();
-metaRouter.get('/', async (req, res) => {
-  const user = currentUser(req);
-  res.json({
-    roles: (await listRoles()).map((role) => ({ key: role.key, name: role.name, description: role.description ?? '', permissions: role.permissions ?? [], system: role.system })),
-    stages: STAGES.map((s) => ({ key: s, label: STAGE_LABELS[s] })),
-    productConfigs: PRODUCT_CONFIGS,
-    neckTypes: NECK_TYPES,
-    sleeves: SLEEVES,
-    sizes: SIZES.filter(Boolean),
-    paymentMethods: PAYMENT_METHODS,
-    deliveryMethods: DELIVERY_METHODS,
-    inventoryCategories: INVENTORY_CATEGORIES,
-    permissions: await permissionsForUserRole(user.role),
-    availablePermissions: PERMISSIONS,
-  });
-});
-
-export const auditRouter = Router();
-auditRouter.get('/', requirePermission('audit.view'), async (req, res) => {
-  const { limit, skip, page } = pagination(req.query as Record<string, unknown>, 50);
-  const query = req.query as Record<string, string | undefined>;
-  const filter: Record<string, unknown> = {};
-  if (query.action?.trim()) filter.action = query.action.trim();
-  if (query.search?.trim()) {
-    const rx = { $regex: escapeRegex(query.search.trim()), $options: 'i' };
-    filter.$or = [
-      { actorName: rx },
-      { actorRole: rx },
-      { action: rx },
-      { entity: rx },
-      { entityId: rx },
-      { summary: rx },
-    ];
-  }
-  const [logs, total] = await Promise.all([
-    AuditLog.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
-    AuditLog.countDocuments(filter),
-  ]);
-  res.json({
-    logs: logs.map((l) => ({ id: String(l._id), actorName: l.actorName, actorRole: l.actorRole, action: l.action, entity: l.entity, entityId: l.entityId, summary: l.summary, at: l.createdAt })),
-    total,
-    page,
-    limit,
-    actions: await AuditLog.distinct('action'),
-  });
 });

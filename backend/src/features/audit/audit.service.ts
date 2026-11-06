@@ -1,6 +1,6 @@
-import { AuditLog } from '../models/AuditLog';
-import { getSettings } from '../models/Settings';
-import type { AuthUser } from '../middleware/auth';
+import { AuditLog } from './audit.model';
+import { getSettings } from '../settings/settings.model';
+import type { AuthUser } from '../../middleware/auth';
 
 /** Records a critical action. Failures are logged but never break the request. */
 export async function audit(user: AuthUser | null, action: string, entity: string, entityId: string, summary: string) {

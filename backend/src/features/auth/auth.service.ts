@@ -2,13 +2,13 @@ import bcrypt from 'bcryptjs';
 import crypto from 'node:crypto';
 import path from 'node:path';
 import sharp from 'sharp';
-import { Customer } from '../../models/Customer';
-import { User } from '../../models/user.model';
-import { audit } from '../../lib/audit';
+import { Customer } from '../customers/customer.model';
+import { User } from '../users/user.model';
+import { audit } from '../audit/audit.service';
 import { badRequest, conflict, HttpError } from '../../lib/http';
 import { signToken } from '../../middleware/auth';
 import type { AuthUser } from '../../middleware/auth';
-import { permissionsForUserRole } from '../../lib/roles';
+import { permissionsForUserRole } from '../roles/roles.service';
 import { removeStoredFile, storedFilePath } from '../../lib/uploads';
 import { publicUrl } from '../../lib/urls';
 

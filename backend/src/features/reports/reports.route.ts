@@ -1,9 +1,9 @@
 import { Router } from 'express';
-import { Order } from '../models/Order';
-import { Payment } from '../models/Payment';
-import { requirePermission } from '../middleware/auth';
-import { STAGE_LABELS, STAGES, type Stage } from '../lib/constants';
-import { Attendance } from '../features/attendance/attendance.model';
+import { Order } from '../orders/order.model';
+import { Payment } from '../payments/payment.model';
+import { requirePermission } from '../../middleware/auth';
+import { STAGE_LABELS, STAGES, type Stage } from '../../lib/constants';
+import { Attendance } from '../attendance/attendance.model';
 
 const router = Router();
 router.use(requirePermission('reports.view'));

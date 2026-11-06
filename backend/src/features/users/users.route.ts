@@ -1,13 +1,13 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
-import { User } from '../models/user.model';
-import { Customer } from '../models/Customer';
-import { currentUser, requirePermission } from '../middleware/auth';
-import { roleExists } from '../lib/roles';
-import { assertObjectId, badRequest, conflict, escapeRegex, notFound, pagination, parse } from '../lib/http';
-import { audit } from '../lib/audit';
-import { sendCustomerRegistrationEmail, sendUserWelcomeEmail } from '../lib/mail';
+import { User } from './user.model';
+import { Customer } from '../customers/customer.model';
+import { currentUser, requirePermission } from '../../middleware/auth';
+import { roleExists } from '../roles/roles.service';
+import { assertObjectId, badRequest, conflict, escapeRegex, notFound, pagination, parse } from '../../lib/http';
+import { audit } from '../audit/audit.service';
+import { sendCustomerRegistrationEmail, sendUserWelcomeEmail } from '../../lib/mail';
 
 const router = Router();
 router.use(requirePermission('users.manage'));

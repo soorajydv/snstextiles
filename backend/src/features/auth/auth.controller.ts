@@ -3,7 +3,7 @@ import { env } from '../../config/env';
 import { AUTH_COOKIE, currentUser } from '../../middleware/auth';
 import { badRequest, HttpError, parse } from '../../lib/http';
 import { storedFilePath } from '../../lib/uploads';
-import { User } from '../../models/user.model';
+import { User } from '../users/user.model';
 import { changePasswordSchema, customerRegistrationSchema, deleteAccountSchema, forgotPasswordSchema, loginSchema, profileSchema, resetPasswordSchema } from './auth.validation';
 import { changePassword, deleteAccount, getProfile, login, registerCustomer, removeAvatar, requestPasswordReset, resetPassword, updateAvatar, updateProfile } from './auth.service';
 import { sendPasswordResetEmail } from '../../lib/mail';

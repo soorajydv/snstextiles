@@ -9,16 +9,16 @@ import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import mongoose, { Types } from 'mongoose';
 import { env } from './config/env';
-import { User } from './models/user.model';
-import { Customer } from './models/Customer';
-import { Order } from './models/Order';
-import { Payment } from './models/Payment';
-import { InventoryItem, StockMovement, INVENTORY_CATEGORIES } from './models/Inventory';
-import { Counter } from './models/Counter';
-import { getSettings } from './models/Settings';
-import { computeStatus } from './lib/workflow';
+import { User } from './features/users/user.model';
+import { Customer } from './features/customers/customer.model';
+import { Order } from './features/orders/order.model';
+import { Payment } from './features/payments/payment.model';
+import { InventoryItem, StockMovement, INVENTORY_CATEGORIES } from './features/inventory/inventory.model';
+import { Counter } from './lib/counter';
+import { getSettings } from './features/settings/settings.model';
+import { computeStatus } from './features/orders/order.workflow';
 import { STAGES, type Stage } from './lib/constants';
-import { ensureSystemRoles } from './lib/roles';
+import { ensureSystemRoles } from './features/roles/roles.service';
 
 export const DEMO_PASSWORD = 'Password@123';
 

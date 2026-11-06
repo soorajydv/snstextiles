@@ -1,7 +1,7 @@
 import { env } from './src/config/env';
 import { connectDb } from './src/db';
 import { createApp } from './src/app';
-import { ensureSystemRoles } from './src/lib/roles';
+import { ensureSystemRoles } from './src/features/roles/roles.service';
 import { ensureSiteDefaults } from './src/features/site/site.seed';
 
 const app = createApp();

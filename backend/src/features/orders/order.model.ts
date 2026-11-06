@@ -1,5 +1,5 @@
 import { Schema, model, InferSchemaType, HydratedDocument } from 'mongoose';
-import { NECK_TYPES, SLEEVES, STAGES } from '../lib/constants';
+import { NECK_TYPES, SLEEVES, STAGES } from '../../lib/constants';
 
 const fileSchema = new Schema(
   {

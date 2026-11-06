@@ -2,9 +2,9 @@ import { env } from './config/env';
 import { connectDb } from './db';
 import { createApp } from './app';
 import { seedIfEmpty } from './seed';
-import { ensureSystemRoles } from './lib/roles';
+import { ensureSystemRoles } from './features/roles/roles.service';
 import { ensureSiteDefaults } from './features/site/site.seed';
-import { User } from './models/user.model';
+import { User } from './features/users/user.model';
 
 async function migrateLegacyAvatars() {
   await User.collection.updateMany(
