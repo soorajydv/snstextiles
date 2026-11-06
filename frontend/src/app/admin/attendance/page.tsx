@@ -74,14 +74,14 @@ export default function AttendancePage() {
   const users = data?.users ?? [];
   const exportUserOptions = users.length ? users : (currentAttendance.data?.users ?? []);
 
-  return <>
+  return <div className="attendance-page">
     <PageHeader eyebrow="TIME & ATTENDANCE" title="Attendance" subtitle={isReviewer ? 'Review check-ins and explore attendance history for every employee.' : 'Request check-in approval before starting your shift, then check out when you leave.'} actions={<div className="header-actions">
       {isReviewer && <button className="btn" onClick={openExport}>⇩ Export history</button>}
       {current ? (current.status === 'approved' && canCheckOut ? <button className="btn primary" disabled={busy} onClick={() => action('/attendance/check-out', 'Checked out successfully')}>Check out</button> : <Badge>{current.status === 'pending' ? 'Waiting for admin approval' : 'Check-out unavailable'}</Badge>) : canCheckIn ? <button className="btn primary" disabled={busy} onClick={() => action('/attendance/check-in', 'Check-in request sent for approval')}>Check in</button> : <Badge>Check-in unavailable</Badge>}
     </div>} />
     {error && <Notice tone="error">{error}</Notice>}
     {isReviewer && <div className="stats-grid"><StatCard label="Matching records" value={summary.total} note="For the selected filters" icon="◷" /><StatCard label="Worked time shown" value={formatMinutes(summary.worked)} note="Current page" icon="✓" /><StatCard label="Pending approvals" value={summary.pending} note="Needs review" icon="!" tone={summary.pending ? 'amber' : undefined} /><StatCard label="Open shifts" value={summary.open} note="Awaiting check-out" icon="◷" tone={summary.open ? 'amber' : undefined} /></div>}
-    <div className="toolbar" style={{ alignItems: 'end' }}>
+    <div className="attendance-filters toolbar" style={{ alignItems: 'end' }}>
       {isReviewer && <div className="search"><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search employee…" aria-label="Search attendance" /></div>}
       {isReviewer && <label className="field"><span>Employee</span><select value={userId} onChange={(e) => setUserId(e.target.value)}><option value="">All employees</option>{users.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>}
       <label className="field"><span>From</span><input type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></label>
@@ -90,13 +90,13 @@ export default function AttendancePage() {
       <label className="field"><span>Sort by</span><select value={sort} onChange={(e) => setSort(e.target.value as SortField)}><option value="checkIn">Check-in time</option><option value="checkOut">Check-out time</option><option value="status">Status</option></select></label>
       <button className="btn" onClick={() => setDirection(direction === 'desc' ? 'asc' : 'desc')}>{direction === 'desc' ? '↓ Newest' : '↑ Oldest'}</button>
     </div>
-    {!data ? <Spinner /> : <section className="card flush"><div className="table-wrap"><table><thead><tr><th>Employee</th><th>Check in</th><th>Check out</th><th>Worked hrs</th><th>Status</th><th>Approved by</th>{isReviewer && <th>Actions</th>}</tr></thead><tbody>
+    {!data ? <Spinner /> : <section className="attendance-history card flush"><div className="attendance-history-head"><div><strong>Attendance history</strong><span>Review check-ins, working hours, and approvals.</span></div><span className="muted small">{data.total} {data.total === 1 ? 'record' : 'records'}</span></div><div className="table-wrap"><table><thead><tr><th>Employee</th><th>Check in</th><th>Check out</th><th>Worked hrs</th><th>Status</th><th>Approved by</th>{isReviewer && <th>Actions</th>}</tr></thead><tbody>
       {records.map((record) => <tr key={record.id}><td><strong>{record.user.name}</strong><div className="muted small">{record.user.email}</div></td><td>{fmtDateTime(record.checkInAt)}</td><td>{record.checkOutAt ? fmtDateTime(record.checkOutAt) : <span className="muted">—</span>}</td><td>{formatMinutes(workedMinutes(record, now))}</td><td><Badge>{statusLabel(record)}</Badge>{record.rejectionReason && <div className="muted small" style={{ marginTop: 4 }}>{record.rejectionReason}</div>}</td><td>{record.approvedBy?.name ?? <span className="muted">—</span>}</td>{isReviewer && <td>{record.status === 'pending' ? <><button className="btn small primary" onClick={() => action(`/attendance/${record.id}/approve`, 'Check-in approved')}>Approve</button>{' '}<button className="btn small danger" onClick={() => setRejecting(record)}>Reject</button></> : <span className="muted small">No action</span>}</td>}</tr>)}
     </tbody></table>{!records.length && <Empty>No attendance records match these filters.</Empty>}</div></section>}
     {data && data.total > data.limit && <div className="toolbar" style={{ marginTop: 12, justifyContent: 'flex-end', alignItems: 'center' }}><button className="btn small" disabled={page <= 1} onClick={() => setPage(page - 1)}>← Prev</button><span className="small muted">Page {page} of {Math.ceil(data.total / data.limit)}</span><button className="btn small" disabled={page >= Math.ceil(data.total / data.limit)} onClick={() => setPage(page + 1)}>Next →</button></div>}
     {rejecting && <RejectModal record={rejecting} onClose={() => setRejecting(null)} onSaved={() => { setRejecting(null); reload(); }} />}
     {exportOpen && <ExportModal filters={exportFilters} users={exportUserOptions} onChange={setExportFilters} onClose={() => setExportOpen(false)} onSubmit={downloadExport} />}
-  </>;
+  </div>;
 }
 
 function workedMinutes(record: AttendanceRecord, now: number) {

@@ -22,7 +22,16 @@ export async function recomputePaid(orderId: Types.ObjectId | string) {
   await Order.updateOne({ _id: orderId }, { $set: { amountPaid: row?.total ?? 0 } });
 }
 
-const toDto = (p: Record<string, any>) => ({
+function orderDto(value: any, fallback?: { id: string; orderNo: string }) {
+  if (!value) return fallback ?? { id: '', orderNo: '' };
+  if (typeof value === 'object') {
+    const id = value._id ?? value.id;
+    return { id: id ? String(id) : fallback?.id ?? '', orderNo: value.orderNo ?? fallback?.orderNo ?? '' };
+  }
+  return { id: String(value), orderNo: fallback?.orderNo ?? '' };
+}
+
+const toDto = (p: Record<string, any>, fallbackOrder?: { id: string; orderNo: string }) => ({
   id: String(p._id),
   amount: p.amount,
   method: p.method,
@@ -37,7 +46,7 @@ const toDto = (p: Record<string, any>) => ({
   reversedAt: p.reversedAt,
   proof: p.proof?.storedName ? { originalName: p.proof.originalName, size: p.proof.size, url: publicUrl(`/api/payments/${String(p._id)}/proof`) } : null,
   receivedAt: p.receivedAt,
-  order: p.order && typeof p.order === 'object' && 'orderNo' in p.order ? { id: String(p.order._id), orderNo: p.order.orderNo } : { id: String(p.order), orderNo: '' },
+  order: orderDto(p.order, fallbackOrder),
   customer: p.customer && typeof p.customer === 'object' && 'name' in p.customer ? { id: String(p.customer._id), name: p.customer.name } : { id: String(p.customer), name: '' },
   recordedBy: p.recordedBy && typeof p.recordedBy === 'object' && 'name' in p.recordedBy ? p.recordedBy.name : '',
 });
@@ -65,7 +74,30 @@ router.get('/', requirePermission('payments.view'), async (req, res) => {
       .lean(),
     Payment.countDocuments(filter),
   ]);
-  res.json({ payments: payments.map(toDto), total, page, limit });
+  const missingOrderIds = payments
+    .filter((payment) => {
+      const order = (payment as any).order;
+      return order && typeof order === 'object' && !order.orderNo;
+    })
+    .map((payment) => {
+      const order = (payment as any).order;
+      return String(order._id ?? order.id);
+    })
+    .filter((id) => Types.ObjectId.isValid(id));
+  const fallbackOrders = missingOrderIds.length
+    ? await Order.find({ _id: { $in: missingOrderIds } }).select('orderNo').lean()
+    : [];
+  const fallbackById = new Map(fallbackOrders.map((order) => [String(order._id), { id: String(order._id), orderNo: order.orderNo }]));
+  res.json({
+    payments: payments.map((payment) => {
+      const order = (payment as any).order;
+      const paymentOrderId = order && typeof order === 'object' ? String(order._id ?? order.id) : String(order);
+      return toDto(payment, fallbackById.get(paymentOrderId));
+    }),
+    total,
+    page,
+    limit,
+  });
 });
 
 const createSchema = z.object({
@@ -154,24 +186,6 @@ router.post('/:id/reject', requirePermission('payments.verify'), async (req, res
   res.json({ payment: toDto(saved!) });
 });
 
-router.post('/:id/reverse', requirePermission('payments.reverse'), async (req, res) => {
-  const user = currentUser(req);
-  const { reason } = parse(z.object({ reason: z.string().trim().min(2).max(500) }), req.body ?? {});
-  const payment = await Payment.findById(assertObjectId(req.params.id, 'Payment')).populate('order', 'orderNo');
-  if (!payment) throw notFound('Payment not found');
-  if (payment.status !== 'verified' && payment.status !== undefined) throw conflict('Only verified payments can be reversed');
-  const orderRef = payment.order as unknown as { _id: Types.ObjectId; orderNo: string };
-  payment.status = 'reversed';
-  payment.reversalReason = reason;
-  payment.reversedBy = user.id as never;
-  payment.reversedAt = new Date();
-  await payment.save();
-  await recomputePaid(orderRef._id);
-  await audit(user, 'payment.reversed', 'Payment', String(payment._id), `Reversed payment of ${payment.amount} on ${orderRef.orderNo}: ${reason}`);
-  const saved = await Payment.findById(payment._id).populate('order', 'orderNo').populate('customer', 'name').populate('recordedBy', 'name').populate('verifiedBy', 'name').populate('reversedBy', 'name').lean();
-  res.json({ payment: toDto(saved!) });
-});
-
 router.get('/:id/proof', requirePermission('payments.view'), async (req, res) => {
   const user = currentUser(req);
   const payment = await Payment.findById(assertObjectId(req.params.id, 'Payment')).lean();
@@ -187,7 +201,7 @@ router.delete('/:id', requirePermission('payments.delete'), async (req, res) => 
   const id = assertObjectId(req.params.id, 'Payment');
   const payment = await Payment.findById(id).populate('order', 'orderNo');
   if (!payment) throw notFound('Payment not found');
-  if (payment.status === 'verified') throw conflict('Verified payments cannot be deleted. Reverse the payment instead.');
+  if (payment.status === 'verified') throw conflict('Verified payments cannot be deleted.');
   if (payment.status === 'reversed') throw conflict('Reversed payments are kept for audit history.');
   removeStoredFile(payment.proof?.storedName);
   await payment.deleteOne();

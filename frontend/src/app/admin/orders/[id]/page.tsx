@@ -8,14 +8,14 @@ import { useAuth } from '@/components/AuthProvider';
 import { useToast } from '@/components/Toast';
 import { LocalFilePreview } from '@/components/LocalFilePreview';
 import { Badge, ConfirmModal, DueDate, Empty, Field, Modal, Notice, PageHeader, Spinner, errorMessage } from '@/components/ui';
-import { DeliverModal, EditOrderModal, RecordPaymentModal, TextPromptModal } from '@/components/OrderModals';
+import { DeliverModal, EditOrderModal, EditRosterModal, RecordPaymentModal, TextPromptModal } from '@/components/OrderModals';
 import { STAGE_ORDER, STAGE_SHORT, canCompleteStage, canSeeMoney, fileSize, fmtDate, fmtDateTime, fmtMoney } from '@/lib/format';
 import type { Order, Payment, StoredFile } from '@/lib/types';
 import { DESIGN_EXTENSIONS, validateUploadFile } from '@/lib/uploads';
 import { assetPath, appPath } from '@/lib/paths';
 import { Icon } from '@/components/Icon';
 
-type ModalKind = null | 'edit' | 'payment' | 'deliver' | 'advance' | 'sendBack' | 'feedback' | 'upload' | 'approve';
+type ModalKind = null | 'edit' | 'roster' | 'payment' | 'deliver' | 'advance' | 'sendBack' | 'feedback' | 'upload' | 'approve';
 
 export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -92,22 +92,6 @@ export default function OrderDetailPage() {
       await api(`/payments/${payment.id}/reject`, { method: 'POST', body: { reason } });
       toast('Payment rejected');
       payments.reload();
-    } catch (err) {
-      toast(errorMessage(err), 'error');
-    }
-  }
-
-  async function reversePayment(payment: Payment) {
-    const reason = window.prompt(`Reason for reversing ${fmtMoney(payment.amount)} on ${order.orderNo}:`);
-    if (!reason?.trim()) return;
-    try {
-      await api(`/payments/${payment.id}/reverse`, { method: 'POST', body: { reason } });
-      toast('Payment reversed');
-      const [orderRes] = await Promise.all([
-        api<{ order: Order }>(`/orders/${order.id}`),
-        payments.reload(),
-      ]);
-      setData({ order: orderRes.order });
     } catch (err) {
       toast(errorMessage(err), 'error');
     }
@@ -277,6 +261,7 @@ export default function OrderDetailPage() {
                 <h2>Player roster</h2>
                 <div className="card-sub">{order.playerListMode === 'image' ? 'Player list attached as an image' : `${order.players.length} of ${order.quantity} rows filled`}</div>
               </div>
+              {meta.permissions.includes('orders.update') && isDesign && order.playerListMode !== 'image' && <button className="btn small" onClick={() => setModal('roster')}>Edit roster</button>}
             </div>
             {order.players.length ? (
               <div className="table-wrap">
@@ -341,7 +326,6 @@ export default function OrderDetailPage() {
                           {p.status === 'reversed' && p.reversalReason && <div className="payment-reason">Reversal reason: {p.reversalReason}</div>}
                         </div>
                         {p.status === 'pending' && meta.permissions.includes('payments.verify') && <div className="payment-actions"><button className="btn small primary" onClick={() => verifyPayment(p)}>Approve</button><button className="btn small danger" onClick={() => rejectPayment(p)}>Reject</button></div>}
-                        {p.status === 'verified' && meta.permissions.includes('payments.reverse') && <div className="payment-actions"><button className="btn small danger" onClick={() => reversePayment(p)}>Reverse payment</button></div>}
                       </article>
                     ))}
                   </div>
@@ -383,6 +367,7 @@ export default function OrderDetailPage() {
       </div>
 
       {modal === 'edit' && <EditOrderModal order={order} onClose={() => setModal(null)} onSaved={update} />}
+      {modal === 'roster' && <EditRosterModal order={order} onClose={() => setModal(null)} onSaved={update} />}
       {modal === 'deliver' && <DeliverModal order={order} onClose={() => setModal(null)} onSaved={update} />}
       {modal === 'payment' && (
         <RecordPaymentModal

@@ -143,19 +143,6 @@ function Billing() {
     }
   }
 
-  async function reversePayment(p: Payment) {
-    const reason = window.prompt(`Reason for reversing ${fmtMoney(p.amount)} on ${p.order.orderNo}:`);
-    if (!reason?.trim()) return;
-    try {
-      await api(`/payments/${p.id}/reverse`, { method: 'POST', body: { reason } });
-      toast('Payment reversed');
-      payments.reload();
-      orders.reload();
-    } catch (err) {
-      toast(errorMessage(err), 'error');
-    }
-  }
-
   return (
     <>
       <PageHeader
@@ -230,7 +217,7 @@ function Billing() {
                   {payments.data.payments.map((p) => (
                     <tr key={p.id}>
                       <td>{fmtDate(p.receivedAt)}</td>
-                      <td><Link className="order-id" href={`/orders/${p.order.id}`}>{p.order.orderNo}</Link></td>
+                      <td>{p.order.id ? <Link className="order-id" href={`/orders/${p.order.id}`}>{p.order.orderNo || 'View order'}</Link> : <span className="muted">—</span>}</td>
                       <td>{p.customer.name}</td>
                       <td>{p.method}</td>
                       <td>{p.reference || '—'}</td>
@@ -238,7 +225,7 @@ function Billing() {
                       <td className="num"><strong>{fmtMoney(p.amount)}</strong></td>
                       <td><Badge>{p.status === 'pending' ? 'Pending verification' : p.status === 'rejected' ? 'Rejected' : p.status === 'reversed' ? 'Reversed' : 'Verified'}</Badge>{p.rejectionReason && <div className="muted small">{p.rejectionReason}</div>}{p.reversalReason && <div className="muted small">{p.reversalReason}</div>}</td>
                       <td>{p.recordedBy || '—'}</td>
-                      {(meta.permissions.includes('payments.verify') || meta.permissions.includes('payments.delete') || meta.permissions.includes('payments.reverse')) && <td>{p.status === 'pending' && meta.permissions.includes('payments.verify') && <><button className="btn small primary" onClick={() => verifyPayment(p)}>Verify</button>{' '}<button className="btn small danger" onClick={() => rejectPayment(p)}>Reject</button>{' '}</>}{p.status === 'verified' && meta.permissions.includes('payments.reverse') && <button className="btn small danger" onClick={() => reversePayment(p)}>Reverse</button>}{['rejected', 'pending'].includes(p.status) && meta.permissions.includes('payments.delete') && <button className="btn small danger" onClick={() => setPaymentToDelete(p)}>Delete</button>}</td>}
+                      {(meta.permissions.includes('payments.verify') || meta.permissions.includes('payments.delete')) && <td>{p.status === 'pending' && meta.permissions.includes('payments.verify') && <><button className="btn small primary" onClick={() => verifyPayment(p)}>Verify</button>{' '}<button className="btn small danger" onClick={() => rejectPayment(p)}>Reject</button>{' '}</>}{['rejected', 'pending'].includes(p.status) && meta.permissions.includes('payments.delete') && <button className="btn small danger" onClick={() => setPaymentToDelete(p)}>Delete</button>}</td>}
                     </tr>
                   ))}
                 </tbody>

@@ -8,9 +8,66 @@ import { Field, Modal, Notice, errorMessage } from './ui';
 import { LocalFilePreview } from './LocalFilePreview';
 import { fmtMoney, toInputDate } from '@/lib/format';
 import { AVATAR_EXTENSIONS, MAX_UPLOAD_BYTES, validateUploadFile } from '@/lib/uploads';
-import type { Order, Payment } from '@/lib/types';
+import type { Order, Payment, Player } from '@/lib/types';
 
 type Done<T> = (result: T) => void;
+
+export function EditRosterModal({ order, onClose, onSaved }: { order: Order; onClose: () => void; onSaved: Done<Order> }) {
+  const { meta } = useAuth();
+  const toast = useToast();
+  const hasShorts = order.productConfig.toLowerCase().includes('shorts');
+  const hasTrouser = order.productConfig.toLowerCase().includes('trouser');
+  const blankPlayer = (): Player => ({ name: '', number: '', sleeve: meta.sleeves[0] ?? 'Half sleeve', jerseySize: '', shortsSize: '', trouserSize: '' });
+  const [players, setPlayers] = useState<Player[]>(() => Array.from({ length: order.quantity }, (_, index) => order.players[index] ?? blankPlayer()));
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  function updatePlayer(index: number, patch: Partial<Player>) {
+    setPlayers((current) => current.map((player, i) => (i === index ? { ...player, ...patch } : player)));
+  }
+
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    setBusy(true);
+    setError('');
+    try {
+      const res = await api<{ order: Order }>(`/orders/${order.id}`, { method: 'PATCH', body: { players } });
+      toast('Player roster updated');
+      onSaved(res.order);
+    } catch (err) {
+      setError(errorMessage(err));
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Modal title={`Edit player roster · ${order.orderNo}`} onClose={onClose}>
+      <form onSubmit={submit}>
+        {error && <Notice tone="error" style={{ marginBottom: 14 }}>{error}</Notice>}
+        <Notice style={{ marginBottom: 14 }}>Add or update one row for each of the {order.quantity} sets. Blank rows can be completed later while the order is still in Design.</Notice>
+        <div className="table-wrap roster-editor-table">
+          <table className="player-table">
+            <thead><tr><th>#</th><th>Name</th><th>No.</th><th>Sleeve</th><th>Jersey</th>{hasShorts && <th>Shorts</th>}{hasTrouser && <th>Trouser</th>}</tr></thead>
+            <tbody>
+              {players.map((player, index) => (
+                <tr key={index}>
+                  <td className="muted">{index + 1}</td>
+                  <td><input aria-label={`Player ${index + 1} name`} value={player.name} onChange={(event) => updatePlayer(index, { name: event.target.value })} placeholder="Name" /></td>
+                  <td><input aria-label={`Player ${index + 1} number`} value={player.number} onChange={(event) => updatePlayer(index, { number: event.target.value })} placeholder="No." /></td>
+                  <td><select aria-label={`Player ${index + 1} sleeve`} value={player.sleeve} onChange={(event) => updatePlayer(index, { sleeve: event.target.value })}>{meta.sleeves.map((sleeve) => <option key={sleeve}>{sleeve}</option>)}</select></td>
+                  <td><select aria-label={`Player ${index + 1} jersey size`} value={player.jerseySize} onChange={(event) => updatePlayer(index, { jerseySize: event.target.value })}><option value="">—</option>{meta.sizes.map((size) => <option key={size}>{size}</option>)}</select></td>
+                  {hasShorts && <td><select aria-label={`Player ${index + 1} shorts size`} value={player.shortsSize} onChange={(event) => updatePlayer(index, { shortsSize: event.target.value })}><option value="">—</option>{meta.sizes.map((size) => <option key={size}>{size}</option>)}</select></td>}
+                  {hasTrouser && <td><select aria-label={`Player ${index + 1} trouser size`} value={player.trouserSize} onChange={(event) => updatePlayer(index, { trouserSize: event.target.value })}><option value="">—</option>{meta.sizes.map((size) => <option key={size}>{size}</option>)}</select></td>}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="form-actions"><button type="button" className="btn" onClick={onClose} disabled={busy}>Cancel</button><button className="btn primary" disabled={busy}>{busy ? 'Saving…' : 'Save roster'}</button></div>
+      </form>
+    </Modal>
+  );
+}
 
 export function RecordPaymentModal({ orders, initialOrderId, onClose, onSaved }: { orders: Order[]; initialOrderId?: string; onClose: () => void; onSaved: Done<Payment> }) {
   const { meta } = useAuth();

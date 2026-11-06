@@ -5,7 +5,7 @@ import { AppLink as Link } from '@/components/AppLink';
 import { api, useApi } from '@/lib/api';
 import { useAuth } from '@/components/AuthProvider';
 import { useToast } from '@/components/Toast';
-import { Badge, ConfirmModal, DueDate, Empty, Notice, PageHeader, Spinner, errorMessage } from '@/components/ui';
+import { Badge, ConfirmModal, DueDate, Empty, Modal, Notice, PageHeader, Spinner, errorMessage } from '@/components/ui';
 import { STAGE_ORDER, STAGE_SHORT, canCompleteStage, fmtMoney, initials } from '@/lib/format';
 import type { Order, Role, Stage } from '@/lib/types';
 
@@ -26,14 +26,15 @@ export default function ProductionPage() {
   const { data, error, reload, setData } = useApi<{ orders: Order[] }>('/orders?limit=200');
   const [busyId, setBusyId] = useState<string | null>(null);
   const [orderToAdvance, setOrderToAdvance] = useState<{ order: Order; cutting: boolean } | null>(null);
+  const [checklistOrder, setChecklistOrder] = useState<Order | null>(null);
   const columns = COLUMNS[user.role as Role] ?? ALL;
   const label = (s: BoardColumn) => s === 'cutting' ? 'Cutting' : meta.stages.find((x) => x.key === s)?.label ?? s;
 
-  async function advance(o: Order) {
+  async function advance(o: Order, checklistConfirmed = false) {
     const next = STAGE_ORDER[STAGE_ORDER.indexOf(o.stage) + 1];
     setBusyId(o.id);
     try {
-      const res = await api<{ order: Order }>(`/orders/${o.id}/advance`, { method: 'POST', body: {} });
+      const res = await api<{ order: Order }>(`/orders/${o.id}/advance`, { method: 'POST', body: { checklistConfirmed } });
       toast(`${o.orderNo} → ${res.order.stageLabel}`);
       setData((d) => d && { orders: d.orders.map((x) => (x.id === o.id ? res.order : x)) });
     } catch (err) {
@@ -41,6 +42,7 @@ export default function ProductionPage() {
       reload();
     } finally {
       setOrderToAdvance(null);
+      setChecklistOrder(null);
       setBusyId(null);
     }
   }
@@ -63,6 +65,7 @@ export default function ProductionPage() {
   return (
     <>
       {orderToAdvance && <ConfirmModal title={orderToAdvance.cutting ? 'Complete Cutting' : 'Advance order'} message={orderToAdvance.cutting ? `Mark Cutting complete for ${orderToAdvance.order.orderNo}?` : `Mark ${STAGE_SHORT[orderToAdvance.order.stage]} complete for ${orderToAdvance.order.orderNo} and move it to ${STAGE_SHORT[STAGE_ORDER[STAGE_ORDER.indexOf(orderToAdvance.order.stage) + 1]]}?`} confirmLabel={orderToAdvance.cutting ? 'Complete Cutting' : 'Advance order'} danger={false} onClose={() => setOrderToAdvance(null)} onConfirm={() => orderToAdvance.cutting ? completeCutting(orderToAdvance.order) : advance(orderToAdvance.order)} />}
+      {checklistOrder && <PlayerListChecklistModal order={checklistOrder} busy={busyId === checklistOrder.id} onClose={() => setChecklistOrder(null)} onConfirm={() => advance(checklistOrder, true)} />}
       <PageHeader
         eyebrow="SHOP FLOOR"
         title="Production board"
@@ -113,8 +116,8 @@ export default function ProductionPage() {
                         <Link className="btn small" href={`/orders/${o.id}`}>Open job →</Link>
                       </div>
                       {canMove && !gated && (
-                        <button className="btn small primary block" style={{ marginTop: 10 }} disabled={busyId === o.id} onClick={() => setOrderToAdvance({ order: o, cutting: isCutting })}>
-                          {busyId === o.id ? 'Moving…' : isCutting ? 'Mark Cutting complete →' : stage === 'design' ? 'Complete design & move to Printing →' : 'Mark stage complete →'}
+                        <button className="btn small primary block" style={{ marginTop: 10 }} disabled={busyId === o.id} onClick={() => stage === 'design' ? setChecklistOrder(o) : setOrderToAdvance({ order: o, cutting: isCutting })}>
+                          {busyId === o.id ? 'Moving…' : isCutting ? 'Mark Cutting complete →' : stage === 'design' ? 'Complete design stage →' : 'Mark stage complete →'}
                         </button>
                       )}
                       {canMove && gated && (
@@ -136,4 +139,20 @@ export default function ProductionPage() {
       )}
     </>
   );
+}
+
+function PlayerListChecklistModal({ order, busy, onClose, onConfirm }: { order: Order; busy: boolean; onClose: () => void; onConfirm: () => Promise<void> }) {
+  const [checked, setChecked] = useState<boolean[]>([false, false, false, false]);
+  const imageMode = order.playerListMode === 'image';
+  const items = imageMode
+    ? ['I reviewed the uploaded player-list image', 'Names and jersey numbers are correct', 'Sizes and quantities are correct', 'The approved design is correct for all players']
+    : [`All ${order.quantity} player rows are present`, 'Names and jersey numbers are correct', 'Sizes and quantities are correct', 'The approved design is correct for all players'];
+  const allChecked = checked.every(Boolean);
+  return <Modal title="Complete Design checklist" onClose={busy ? () => undefined : onClose}>
+    <Notice tone="info">Confirm the {imageMode ? 'uploaded image' : 'manual player roster'} before moving this order to Printing.</Notice>
+    <div className="player-checklist-modal">
+      {items.map((item, index) => <label className="checkbox-line" key={item}><input type="checkbox" checked={checked[index]} onChange={(event) => setChecked((current) => current.map((value, i) => i === index ? event.target.checked : value))} /> {item}</label>)}
+    </div>
+    <div className="form-actions"><button type="button" className="btn" onClick={onClose} disabled={busy}>Cancel</button><button type="button" className="btn primary" disabled={!allChecked || busy} onClick={onConfirm}>{busy ? 'Moving…' : 'Confirm & move to Printing'}</button></div>
+  </Modal>;
 }

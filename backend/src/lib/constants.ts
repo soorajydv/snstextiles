@@ -8,7 +8,7 @@ export const PERMISSIONS = [
   'dashboard.view',
   'orders.view', 'orders.create', 'orders.update', 'orders.delete', 'orders.artwork.upload', 'orders.approve', 'orders.feedback', 'orders.stage.complete', 'orders.send_back', 'orders.deliver', 'orders.invoice',
   'customers.view', 'customers.manage', 'customers.delete',
-  'payments.view', 'payments.record', 'payments.verify', 'payments.delete', 'payments.reverse',
+  'payments.view', 'payments.record', 'payments.verify', 'payments.delete',
   'inventory.view', 'inventory.manage', 'inventory.move', 'inventory.adjust',
   'reports.view', 'users.manage', 'settings.view', 'settings.manage', 'audit.view',
   'roles.manage',
@@ -28,7 +28,7 @@ export const ROLE_PERMISSIONS: Record<BuiltInRole, Permission[]> = {
   printing: ['dashboard.view', 'orders.view', 'orders.stage.complete', 'inventory.view', 'inventory.move', 'settings.view', ...staffAttendance, ...profilePermissions],
   stitching: ['dashboard.view', 'orders.view', 'orders.stage.complete', 'inventory.view', 'inventory.move', 'settings.view', ...staffAttendance, ...profilePermissions],
   finishing: ['dashboard.view', 'orders.view', 'orders.stage.complete', 'inventory.view', 'inventory.move', 'settings.view', ...staffAttendance, ...profilePermissions],
-  accounts: ['dashboard.view', 'orders.view', 'orders.create', 'orders.update', 'orders.invoice', 'customers.view', 'customers.manage', 'payments.view', 'payments.record', 'payments.verify', 'payments.reverse', 'reports.view', 'settings.view', ...staffAttendance, ...profilePermissions],
+  accounts: ['dashboard.view', 'orders.view', 'orders.create', 'orders.update', 'orders.invoice', 'customers.view', 'customers.manage', 'payments.view', 'payments.record', 'payments.verify', 'reports.view', 'settings.view', ...staffAttendance, ...profilePermissions],
   customer: ['dashboard.view', 'orders.view', 'orders.create', 'orders.approve', 'orders.feedback', 'payments.view', 'payments.record', 'settings.view', ...profilePermissions],
 };
 

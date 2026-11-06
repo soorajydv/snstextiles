@@ -370,7 +370,7 @@ router.post('/:id/feedback', requirePermission('orders.feedback'), async (req, r
 router.post('/:id/advance', requirePermission('orders.stage.complete'), async (req, res) => {
   const user = currentUser(req);
   const order = await loadOrderForUser(assertObjectId(req.params.id, 'Order'), user);
-  const { note } = parse(z.object({ note: z.string().trim().max(500).optional().default('') }), req.body ?? {});
+  const { note, checklistConfirmed } = parse(z.object({ note: z.string().trim().max(500).optional().default(''), checklistConfirmed: z.boolean().optional().default(false) }), req.body ?? {});
   const from = order.stage as Stage;
   if (from === 'ready') throw conflict('Use the dispatch screen to confirm delivery');
   const to = nextStage(from);
@@ -382,6 +382,9 @@ router.post('/:id/advance', requirePermission('orders.stage.complete'), async (r
   const cuttingStatus = order.cuttingStatus ?? (from === 'design' ? 'pending' : 'completed');
   if (from === 'design' && cuttingStatus !== 'completed') {
     throw conflict('Printing cannot start until Cutting marks this order complete');
+  }
+  if (from === 'design' && !checklistConfirmed) {
+    throw conflict('Confirm the player list checklist before completing Design');
   }
   order.stage = to;
   order.history.push({ from, to, by: user.id, byName: user.name, note, at: new Date() } as never);
