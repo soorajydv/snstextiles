@@ -25,7 +25,7 @@ export default function ProductionPage() {
   const toast = useToast();
   const { data, error, reload, setData } = useApi<{ orders: Order[] }>('/orders?limit=200');
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [orderToAdvance, setOrderToAdvance] = useState<{ order: Order; cutting: boolean; checklist?: boolean } | null>(null);
+  const [orderToAdvance, setOrderToAdvance] = useState<{ order: Order; cutting: boolean } | null>(null);
   const columns = COLUMNS[user.role as Role] ?? ALL;
   const label = (s: BoardColumn) => s === 'cutting' ? 'Cutting' : meta.stages.find((x) => x.key === s)?.label ?? s;
 
@@ -60,24 +60,9 @@ export default function ProductionPage() {
     }
   }
 
-  async function verifyPlayerList(o: Order) {
-    setBusyId(o.id);
-    try {
-      const res = await api<{ order: Order }>(`/orders/${o.id}/design/checklist`, { method: 'POST', body: { playerListVerified: true } });
-      toast(`${o.orderNo} player list verified`);
-      setData((d) => d && { orders: d.orders.map((x) => (x.id === o.id ? res.order : x)) });
-    } catch (err) {
-      toast(errorMessage(err), 'error');
-      reload();
-    } finally {
-      setOrderToAdvance(null);
-      setBusyId(null);
-    }
-  }
-
   return (
     <>
-      {orderToAdvance && <ConfirmModal title={orderToAdvance.checklist ? 'Verify player list' : orderToAdvance.cutting ? 'Complete Cutting' : 'Advance order'} message={orderToAdvance.checklist ? `Confirm that the player list for ${orderToAdvance.order.orderNo} has been checked according to the ${orderToAdvance.order.playerListMode === 'image' ? 'uploaded image' : 'manual roster'} method?` : orderToAdvance.cutting ? `Mark Cutting complete for ${orderToAdvance.order.orderNo}?` : `Mark ${STAGE_SHORT[orderToAdvance.order.stage]} complete for ${orderToAdvance.order.orderNo} and move it to ${STAGE_SHORT[STAGE_ORDER[STAGE_ORDER.indexOf(orderToAdvance.order.stage) + 1]]}?`} confirmLabel={orderToAdvance.checklist ? 'Verify player list' : orderToAdvance.cutting ? 'Complete Cutting' : 'Advance order'} danger={false} onClose={() => setOrderToAdvance(null)} onConfirm={() => orderToAdvance.checklist ? verifyPlayerList(orderToAdvance.order) : orderToAdvance.cutting ? completeCutting(orderToAdvance.order) : advance(orderToAdvance.order)} />}
+      {orderToAdvance && <ConfirmModal title={orderToAdvance.cutting ? 'Complete Cutting' : 'Advance order'} message={orderToAdvance.cutting ? `Mark Cutting complete for ${orderToAdvance.order.orderNo}?` : `Mark ${STAGE_SHORT[orderToAdvance.order.stage]} complete for ${orderToAdvance.order.orderNo} and move it to ${STAGE_SHORT[STAGE_ORDER[STAGE_ORDER.indexOf(orderToAdvance.order.stage) + 1]]}?`} confirmLabel={orderToAdvance.cutting ? 'Complete Cutting' : 'Advance order'} danger={false} onClose={() => setOrderToAdvance(null)} onConfirm={() => orderToAdvance.cutting ? completeCutting(orderToAdvance.order) : advance(orderToAdvance.order)} />}
       <PageHeader
         eyebrow="SHOP FLOOR"
         title="Production board"
@@ -101,14 +86,6 @@ export default function ProductionPage() {
                   const gated = stage === 'design' && !o.approved;
                   const isCutting = stage === 'cutting';
                   const canMove = isCutting ? (user.role === 'owner' || user.role === 'cutting') : stage !== 'ready' && canCompleteStage(user.role, stage, meta.permissions);
-                  const playerListReady = o.playerListMode === 'image' ? o.files.some((file) => file.kind === 'player-list') : o.players.length === o.quantity;
-                  const designChecks = stage === 'design' ? [
-                    { label: o.playerListMode === 'image' ? 'Player list image uploaded' : `All ${o.quantity} player rows entered`, done: playerListReady },
-                    { label: 'Player list verified', done: o.designChecklist?.playerListVerified ?? false },
-                    { label: 'Artwork approved', done: o.approved },
-                    { label: 'Cutting completed', done: o.cuttingStatus === 'completed' },
-                  ] : [];
-                  const designReady = designChecks.every((check) => check.done);
                   return (
                     <div className="job-card" key={o.id}>
                       <div className="job-top">
@@ -129,25 +106,13 @@ export default function ProductionPage() {
                           Payment: {fmtMoney(o.amountPaid)} paid · <strong className={o.balance ? 'amber' : 'green'}>{o.balance ? `${fmtMoney(o.balance)} due` : 'Paid in full'}</strong>
                         </div>
                       )}
-                      {stage === 'design' ? (
-                        <div className="design-checklist">
-                          <div className="design-checklist-title">Design checklist</div>
-                          {designChecks.map((check) => <div className={`design-check ${check.done ? 'complete' : ''}`} key={check.label}><span>{check.done ? '✓' : '○'}</span>{check.label}</div>)}
-                        </div>
-                      ) : <>
-                        <div className="bar-label"><span>{o.currentVersion ? `Artwork v${o.currentVersion}` : 'No artwork yet'}</span><span>{o.approved ? 'Approved' : 'Approval pending'}</span></div>
-                        <div className="progress"><span style={{ width: o.approved ? '100%' : o.currentVersion ? '50%' : '10%' }} /></div>
-                      </>}
+                      <div className="bar-label"><span>{o.currentVersion ? `Artwork v${o.currentVersion}` : 'No artwork yet'}</span><span>{o.approved ? 'Approved' : 'Approval pending'}</span></div>
+                      <div className="progress"><span style={{ width: o.approved ? '100%' : o.currentVersion ? '50%' : '10%' }} /></div>
                       <div className="job-foot" style={{ marginTop: 11 }}>
                         <div className="avatar" style={{ width: 24, height: 24, fontSize: 9 }} title={o.customer.name}>{initials(o.teamName)}</div>
                         <Link className="btn small" href={`/orders/${o.id}`}>Open job →</Link>
                       </div>
-                      {stage === 'design' && canMove && playerListReady && !o.designChecklist?.playerListVerified && (
-                        <button className="btn small block" style={{ marginTop: 10 }} disabled={busyId === o.id} onClick={() => setOrderToAdvance({ order: o, cutting: false, checklist: true })}>
-                          {busyId === o.id ? 'Checking…' : 'Verify player list →'}
-                        </button>
-                      )}
-                      {canMove && !gated && (stage !== 'design' || designReady) && (
+                      {canMove && !gated && (
                         <button className="btn small primary block" style={{ marginTop: 10 }} disabled={busyId === o.id} onClick={() => setOrderToAdvance({ order: o, cutting: isCutting })}>
                           {busyId === o.id ? 'Moving…' : isCutting ? 'Mark Cutting complete →' : stage === 'design' ? 'Complete design & move to Printing →' : 'Mark stage complete →'}
                         </button>

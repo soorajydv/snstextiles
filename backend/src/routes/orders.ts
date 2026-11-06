@@ -383,9 +383,6 @@ router.post('/:id/advance', requirePermission('orders.stage.complete'), async (r
   if (from === 'design' && cuttingStatus !== 'completed') {
     throw conflict('Printing cannot start until Cutting marks this order complete');
   }
-  if (from === 'design' && !order.designChecklist?.playerListVerified) {
-    throw conflict('Design cannot be completed until the player list checklist is verified');
-  }
   order.stage = to;
   order.history.push({ from, to, by: user.id, byName: user.name, note, at: new Date() } as never);
   order.status = computeStatus(order);
@@ -402,27 +399,6 @@ router.post('/:id/advance', requirePermission('orders.stage.complete'), async (r
       }
     }
   }
-  res.json(await respond(order, user));
-});
-
-router.post('/:id/design/checklist', requirePermission('orders.stage.complete'), async (req, res) => {
-  const user = currentUser(req);
-  const order = await loadOrderForUser(assertObjectId(req.params.id, 'Order'), user);
-  if (order.stage !== 'design') throw conflict('The player list checklist is only available during Design');
-  if (!canCompleteStage(user, 'design')) throw forbidden('Only the Design team or the owner can verify the player list');
-  const { playerListVerified } = parse(z.object({ playerListVerified: z.boolean() }), req.body ?? {});
-  if (playerListVerified) {
-    const hasImage = order.playerListMode === 'image' && order.files.some((file) => file.kind === 'player-list');
-    const hasManualList = order.playerListMode === 'manual' && order.players.length === order.quantity;
-    if (!hasImage && !hasManualList) throw conflict(order.playerListMode === 'image' ? 'Upload the player list image before verifying it' : `Enter all ${order.quantity} player rows before verifying the list`);
-  }
-  order.designChecklist = {
-    playerListVerified,
-    playerListVerifiedAt: playerListVerified ? new Date() : null,
-    playerListVerifiedByName: playerListVerified ? user.name : '',
-  } as never;
-  await order.save();
-  await audit(user, playerListVerified ? 'order.player_list_verified' : 'order.player_list_unverified', 'Order', String(order._id), `${playerListVerified ? 'Verified' : 'Reset'} player list checklist for ${order.orderNo}`);
   res.json(await respond(order, user));
 });
 

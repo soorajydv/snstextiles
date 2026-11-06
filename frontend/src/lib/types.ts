@@ -88,7 +88,6 @@ export interface Order {
   playerListMode?: 'manual' | 'image';
   cuttingStatus: 'pending' | 'completed';
   cuttingCompletedAt: string | null;
-  designChecklist: { playerListVerified: boolean; playerListVerifiedAt: string | null; playerListVerifiedByName: string };
   comments: string;
   files: StoredFile[];
   artworks: { version: number; file: StoredFile; note: string; uploadedByName: string; uploadedAt: string }[];

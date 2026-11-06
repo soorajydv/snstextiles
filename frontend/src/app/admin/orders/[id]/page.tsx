@@ -52,8 +52,7 @@ export default function OrderDetailPage() {
   const hasTrouser = order.productConfig.toLowerCase().includes('trouser');
   const canAdvance = order.stage !== 'ready' && order.stage !== 'delivered' && canCompleteStage(role, order.stage, meta.permissions);
   const cuttingBlocked = isDesign && order.cuttingStatus !== 'completed';
-  const checklistBlocked = isDesign && !order.designChecklist?.playerListVerified;
-  const advanceBlocked = (isDesign && !order.approved) || cuttingBlocked || checklistBlocked;
+  const advanceBlocked = (isDesign && !order.approved) || cuttingBlocked;
   const canUpload = isDesign && meta.permissions.includes('orders.artwork.upload');
   const canApprove = isDesign && order.currentVersion > 0 && !order.approved && meta.permissions.includes('orders.approve');
   const canFeedback = isDesign && order.currentVersion > 0 && meta.permissions.includes('orders.feedback');
@@ -174,8 +173,6 @@ export default function OrderDetailPage() {
               ? 'Upload the first artwork version for the customer to review.'
               : !order.approved
                 ? `Waiting for customer approval of artwork v${order.currentVersion}. Printing cannot begin until it is approved.`
-                : checklistBlocked
-                  ? 'Verify the player list checklist before completing Design.'
                 : 'Waiting for the Cutting team to complete this order before printing can begin.'}
           </Notice>
         )}
