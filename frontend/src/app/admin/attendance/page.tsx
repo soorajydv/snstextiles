@@ -10,6 +10,7 @@ import { fmtDateTime } from '@/lib/format';
 import type { AttendanceRecord } from '@/lib/types';
 
 type SortField = 'checkIn' | 'checkOut' | 'status';
+type ViewMode = 'table' | 'calendar';
 type UserOption = { id: string; name: string; email: string; role: string };
 type AttendanceResponse = { attendance: AttendanceRecord[]; total: number; page: number; limit: number; users: UserOption[] };
 
@@ -21,12 +22,15 @@ export default function AttendancePage() {
   const toast = useToast();
   const isReviewer = meta.permissions.includes('attendance.approve');
   const [search, setSearch] = useState('');
+  const [employeeOpen, setEmployeeOpen] = useState(false);
   const [status, setStatus] = useState('');
   const [userId, setUserId] = useState('');
   const [from, setFrom] = useState(() => dateValue(new Date(new Date().getFullYear(), new Date().getMonth(), 1)));
   const [to, setTo] = useState(() => dateValue(new Date()));
   const [sort, setSort] = useState<SortField>('checkIn');
   const [direction, setDirection] = useState<'asc' | 'desc'>('desc');
+  const [viewMode, setViewMode] = useState<ViewMode>('table');
+  const [calendarMonth, setCalendarMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
   const [page, setPage] = useState(1);
   const [now, setNow] = useState(() => Date.now());
   const [busy, setBusy] = useState(false);
@@ -35,9 +39,15 @@ export default function AttendancePage() {
   const [exportFilters, setExportFilters] = useState({ from, to, userId, status, sort, direction });
 
   useEffect(() => setPage(1), [search, status, userId, from, to, sort, direction]);
+  useEffect(() => {
+    if (!from) return;
+    const date = new Date(`${from}T00:00:00`);
+    if (!Number.isNaN(date.getTime())) setCalendarMonth(new Date(date.getFullYear(), date.getMonth(), 1));
+  }, [from]);
   useEffect(() => { const timer = window.setInterval(() => setNow(Date.now()), 60_000); return () => window.clearInterval(timer); }, []);
 
   const params = new URLSearchParams({ page: String(page), limit: isReviewer ? '50' : '30', sort, direction });
+  if (isReviewer && viewMode === 'calendar') params.set('all', 'true');
   if (search.trim() && isReviewer) params.set('search', search.trim());
   if (status) params.set('status', status);
   if (userId && isReviewer) params.set('userId', userId);
@@ -73,6 +83,11 @@ export default function AttendancePage() {
   const summary = { total: data?.total ?? 0, worked: records.reduce((sum, record) => sum + workedMinutes(record, now), 0), pending: records.filter((record) => record.status === 'pending').length, open: records.filter((record) => record.status === 'approved' && !record.checkOutAt).length };
   const users = data?.users ?? [];
   const exportUserOptions = users.length ? users : (currentAttendance.data?.users ?? []);
+  const selectedEmployee = users.find((item) => item.id === userId);
+  const employeeOptions = users.filter((item) => {
+    const query = search.trim().toLowerCase();
+    return !query || `${item.name} ${item.email}`.toLowerCase().includes(query);
+  });
 
   return <div className="attendance-page">
     <PageHeader eyebrow="TIME & ATTENDANCE" title="Attendance" subtitle={isReviewer ? 'Review check-ins and explore attendance history for every employee.' : 'Request check-in approval before starting your shift, then check out when you leave.'} actions={<div className="header-actions">
@@ -80,23 +95,68 @@ export default function AttendancePage() {
       {current ? (current.status === 'approved' && canCheckOut ? <button className="btn primary" disabled={busy} onClick={() => action('/attendance/check-out', 'Checked out successfully')}>Check out</button> : <Badge>{current.status === 'pending' ? 'Waiting for admin approval' : 'Check-out unavailable'}</Badge>) : canCheckIn ? <button className="btn primary" disabled={busy} onClick={() => action('/attendance/check-in', 'Check-in request sent for approval')}>Check in</button> : <Badge>Check-in unavailable</Badge>}
     </div>} />
     {error && <Notice tone="error">{error}</Notice>}
-    {isReviewer && <div className="stats-grid"><StatCard label="Matching records" value={summary.total} note="For the selected filters" icon="◷" /><StatCard label="Worked time shown" value={formatMinutes(summary.worked)} note="Current page" icon="✓" /><StatCard label="Pending approvals" value={summary.pending} note="Needs review" icon="!" tone={summary.pending ? 'amber' : undefined} /><StatCard label="Open shifts" value={summary.open} note="Awaiting check-out" icon="◷" tone={summary.open ? 'amber' : undefined} /></div>}
-    <div className="attendance-filters toolbar" style={{ alignItems: 'end' }}>
-      {isReviewer && <div className="search"><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search employee…" aria-label="Search attendance" /></div>}
-      {isReviewer && <label className="field"><span>Employee</span><select value={userId} onChange={(e) => setUserId(e.target.value)}><option value="">All employees</option>{users.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>}
+    {isReviewer && <div className="stats-grid"><StatCard label="Matching records" value={summary.total} note="For the selected filters" icon="◷" /><StatCard label="Worked time shown" value={formatMinutes(summary.worked)} note={viewMode === 'calendar' ? 'All matching records' : 'Current page'} icon="✓" /><StatCard label="Pending approvals" value={summary.pending} note="Needs review" icon="!" tone={summary.pending ? 'amber' : undefined} /><StatCard label="Open shifts" value={summary.open} note="Awaiting check-out" icon="◷" tone={summary.open ? 'amber' : undefined} /></div>}
+    <div className="attendance-filters">
+      {isReviewer && <div className="attendance-employee-picker">
+        <span>Employee</span>
+        <div className="attendance-picker-input">
+          <input
+            aria-label="Search and select employee"
+            onBlur={() => window.setTimeout(() => setEmployeeOpen(false), 120)}
+            onChange={(e) => { setSearch(e.target.value); setUserId(''); setEmployeeOpen(true); }}
+            onFocus={() => setEmployeeOpen(true)}
+            placeholder="All employees"
+            value={search || selectedEmployee?.name || ''}
+          />
+          {(search || userId) && <button aria-label="Clear employee filter" onClick={() => { setSearch(''); setUserId(''); setEmployeeOpen(false); }} type="button">×</button>}
+          {employeeOpen && <div className="attendance-picker-menu">
+            <button onMouseDown={() => { setSearch(''); setUserId(''); setEmployeeOpen(false); }} type="button">All employees</button>
+            {employeeOptions.map((item) => <button key={item.id} onMouseDown={() => { setSearch(''); setUserId(item.id); setEmployeeOpen(false); }} type="button"><strong>{item.name}</strong><small>{item.email}</small></button>)}
+            {!employeeOptions.length && <span className="attendance-picker-empty">No employees found</span>}
+          </div>}
+        </div>
+      </div>}
       <label className="field"><span>From</span><input type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></label>
       <label className="field"><span>To</span><input type="date" value={to} onChange={(e) => setTo(e.target.value)} /></label>
       <label className="field"><span>Status</span><select value={status} onChange={(e) => setStatus(e.target.value)}><option value="">All statuses</option><option value="pending">Pending approval</option><option value="approved">Approved / checked out</option><option value="rejected">Rejected</option></select></label>
       <label className="field"><span>Sort by</span><select value={sort} onChange={(e) => setSort(e.target.value as SortField)}><option value="checkIn">Check-in time</option><option value="checkOut">Check-out time</option><option value="status">Status</option></select></label>
-      <button className="btn" onClick={() => setDirection(direction === 'desc' ? 'asc' : 'desc')}>{direction === 'desc' ? '↓ Newest' : '↑ Oldest'}</button>
+      <div className="attendance-filter-direction"><span>Order</span><button className="btn" onClick={() => setDirection(direction === 'desc' ? 'asc' : 'desc')}>{direction === 'desc' ? '↓ Newest' : '↑ Oldest'}</button></div>
+      <div className="attendance-view-toggle"><span>View</span><div role="group" aria-label="Attendance view"><button className={viewMode === 'table' ? 'active' : undefined} onClick={() => setViewMode('table')} type="button">Table</button><button className={viewMode === 'calendar' ? 'active' : undefined} onClick={() => setViewMode('calendar')} type="button">Calendar</button></div></div>
     </div>
-    {!data ? <Spinner /> : <section className="attendance-history card flush"><div className="attendance-history-head"><div><strong>Attendance history</strong><span>Review check-ins, working hours, and approvals.</span></div><span className="muted small">{data.total} {data.total === 1 ? 'record' : 'records'}</span></div><div className="table-wrap"><table><thead><tr><th>Employee</th><th>Check in</th><th>Check out</th><th>Worked hrs</th><th>Status</th><th>Approved by</th>{isReviewer && <th>Actions</th>}</tr></thead><tbody>
+    {!data ? <Spinner /> : viewMode === 'calendar' ? <AttendanceCalendar month={calendarMonth} now={now} records={records} onMonthChange={setCalendarMonth} /> : <section className="attendance-history card flush"><div className="attendance-history-head"><div><strong>Attendance history</strong><span>Review check-ins, working hours, and approvals.</span></div><span className="muted small">{data.total} {data.total === 1 ? 'record' : 'records'}</span></div><div className="table-wrap"><table><thead><tr><th>Employee</th><th>Check in</th><th>Check out</th><th>Worked hrs</th><th>Status</th><th>Approved by</th>{isReviewer && <th>Actions</th>}</tr></thead><tbody>
       {records.map((record) => <tr key={record.id}><td><strong>{record.user.name}</strong><div className="muted small">{record.user.email}</div></td><td>{fmtDateTime(record.checkInAt)}</td><td>{record.checkOutAt ? fmtDateTime(record.checkOutAt) : <span className="muted">—</span>}</td><td>{formatMinutes(workedMinutes(record, now))}</td><td><Badge>{statusLabel(record)}</Badge>{record.rejectionReason && <div className="muted small" style={{ marginTop: 4 }}>{record.rejectionReason}</div>}</td><td>{record.approvedBy?.name ?? <span className="muted">—</span>}</td>{isReviewer && <td>{record.status === 'pending' ? <><button className="btn small primary" onClick={() => action(`/attendance/${record.id}/approve`, 'Check-in approved')}>Approve</button>{' '}<button className="btn small danger" onClick={() => setRejecting(record)}>Reject</button></> : <span className="muted small">No action</span>}</td>}</tr>)}
     </tbody></table>{!records.length && <Empty>No attendance records match these filters.</Empty>}</div></section>}
     {data && data.total > data.limit && <div className="toolbar" style={{ marginTop: 12, justifyContent: 'flex-end', alignItems: 'center' }}><button className="btn small" disabled={page <= 1} onClick={() => setPage(page - 1)}>← Prev</button><span className="small muted">Page {page} of {Math.ceil(data.total / data.limit)}</span><button className="btn small" disabled={page >= Math.ceil(data.total / data.limit)} onClick={() => setPage(page + 1)}>Next →</button></div>}
     {rejecting && <RejectModal record={rejecting} onClose={() => setRejecting(null)} onSaved={() => { setRejecting(null); reload(); }} />}
     {exportOpen && <ExportModal filters={exportFilters} users={exportUserOptions} onChange={setExportFilters} onClose={() => setExportOpen(false)} onSubmit={downloadExport} />}
   </div>;
+}
+
+function AttendanceCalendar({ records, month, now, onMonthChange }: { records: AttendanceRecord[]; month: Date; now: number; onMonthChange: (month: Date) => void }) {
+  const year = month.getFullYear();
+  const monthIndex = month.getMonth();
+  const firstDay = new Date(year, monthIndex, 1).getDay();
+  const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+  const cells = Array.from({ length: firstDay + daysInMonth }, (_, index) => index < firstDay ? null : index - firstDay + 1);
+  const recordsByDay = new Map<string, AttendanceRecord[]>();
+  records.forEach((record) => {
+    const key = dateKey(record.checkInAt);
+    recordsByDay.set(key, [...(recordsByDay.get(key) ?? []), record]);
+  });
+  const label = month.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+
+  return <section className="attendance-calendar card"><div className="attendance-calendar-head"><div><strong>Attendance calendar</strong><span>Daily check-ins matching the selected filters.</span></div><div className="attendance-calendar-nav"><button className="btn small" onClick={() => onMonthChange(new Date(year, monthIndex - 1, 1))} type="button">←</button><strong>{label}</strong><button className="btn small" onClick={() => onMonthChange(new Date(year, monthIndex + 1, 1))} type="button">→</button></div></div><div className="attendance-calendar-weekdays">{['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => <span key={day}>{day}</span>)}</div><div className="attendance-calendar-grid">{cells.map((day, index) => {
+    if (!day) return <div className="attendance-calendar-day is-empty" key={`empty-${index}`} />;
+    const key = `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const dayRecords = recordsByDay.get(key) ?? [];
+    const today = dateKey(new Date(now).toISOString()) === key;
+    return <div className={`attendance-calendar-day${today ? ' is-today' : ''}`} key={key}><span className="attendance-calendar-date">{day}</span>{dayRecords.map((record) => <div className={`attendance-calendar-entry is-${record.status}`} key={record.id}><strong>{record.user.name}</strong><small>{record.checkOutAt ? 'Checked out' : statusLabel(record)}</small></div>)}{!dayRecords.length && <span className="attendance-calendar-empty">—</span>}</div>;
+  })}</div></section>;
+}
+
+function dateKey(value: string) {
+  const date = new Date(value);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
 function workedMinutes(record: AttendanceRecord, now: number) {

@@ -75,13 +75,16 @@ async function attendanceFilter(user: AuthUser, query: Record<string, string | u
 export async function listAttendance(user: AuthUser, query: Record<string, unknown>) {
   const q = query as Record<string, string | undefined>;
   const { filter, canReviewAll } = await attendanceFilter(user, q);
+  const showAll = canReviewAll && ['true', '1'].includes(q.all ?? '');
   const { page, limit, skip } = pagination(query, canReviewAll ? 50 : 30);
+  const recordsQuery = Attendance.find(filter).populate('user', 'name email role').populate('approvedBy', 'name').sort(sortFor(q));
+  if (!showAll) recordsQuery.skip(skip).limit(limit);
   const [records, total] = await Promise.all([
-    Attendance.find(filter).populate('user', 'name email role').populate('approvedBy', 'name').sort(sortFor(q)).skip(skip).limit(limit).lean(),
+    recordsQuery.lean(),
     Attendance.countDocuments(filter),
   ]);
   const users = canReviewAll ? await User.find({ active: true, role: { $ne: 'customer' } }).select('name email role').sort({ name: 1 }).lean() : [];
-  return { records: records.map(toDto), total, page, limit, users: users.map((item) => ({ id: String(item._id), name: item.name, email: item.email, role: item.role })) };
+  return { records: records.map(toDto), total, page: showAll ? 1 : page, limit: showAll ? total : limit, users: users.map((item) => ({ id: String(item._id), name: item.name, email: item.email, role: item.role })) };
 }
 
 export async function exportAttendance(user: AuthUser, query: Record<string, unknown>) {
