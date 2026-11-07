@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Feature video studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=block" rel="stylesheet">
+  <link rel="stylesheet" href="player.css">
+</head>
+<body>
+  <!-- Open player.html?scene=orders to preview a scene; scripts/render.mjs drives the same page frame by frame. -->
+  <div id="stage">
+    <div id="world"></div>
+    <div id="hud"></div>
+  </div>
+  <div id="controls" hidden>
+    <button id="play" type="button">Pause</button>
+    <input id="scrub" type="range" min="0" max="1000" value="0">
+    <output id="time">0.0s</output>
+    <select id="pick"></select>
+  </div>
+  <script src="shots/manifest.js"></script>
+  <script src="scenes.js"></script>
+  <script src="player.js"></script>
+</body>
+</html>

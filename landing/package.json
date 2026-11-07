@@ -1,0 +1,18 @@
+{
+  "name": "factory-suite-landing",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Marketing landing page with UI feature videos rendered from the real app.",
+  "scripts": {
+    "capture": "node scripts/capture.mjs",
+    "render": "node scripts/render.mjs",
+    "images": "node scripts/images.mjs",
+    "build": "npm run render && npm run images",
+    "preview": "node scripts/serve.mjs"
+  },
+  "devDependencies": {
+    "ffmpeg-static": "^5.3.0",
+    "mongodb": "^6.22.0",
+    "puppeteer-core": "^24.43.1"
+  }
+}
