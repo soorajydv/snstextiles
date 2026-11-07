@@ -70,8 +70,12 @@ export function requireRole(...roles: Role[]) {
   };
 }
 
+/** The owner (admin) account is never blocked by a permission check. */
+const isAdmin = (user: AuthUser | undefined) => user?.role === 'owner';
+
 export function requirePermission(permission: Permission) {
   return (req: Request, _res: Response, next: NextFunction) => {
+    if (isAdmin(req.user)) { next(); return; }
     if (!req.user || !req.user.permissions.includes(permission)) {
       throw forbidden(`You do not have permission to ${permission.replace(/[._]/g, ' ')}`);
     }
@@ -81,6 +85,7 @@ export function requirePermission(permission: Permission) {
 
 export function requireAnyPermission(...permissions: Permission[]) {
   return (req: Request, _res: Response, next: NextFunction) => {
+    if (isAdmin(req.user)) { next(); return; }
     if (!req.user || !permissions.some((permission) => req.user!.permissions.includes(permission))) {
       throw forbidden('You do not have permission to perform this action');
     }

@@ -6,7 +6,7 @@ import { rejectionSchema } from './attendance.validation';
 
 export async function listAttendanceController(req: Request, res: Response) {
   const result = await listAttendance(currentUser(req), req.query as Record<string, unknown>);
-  res.json({ attendance: result.records, total: result.total, page: result.page, limit: result.limit, users: result.users });
+  res.json({ attendance: result.records, total: result.total, page: result.page, limit: result.limit, summary: result.summary, users: result.users });
 }
 
 const csvCell = (value: unknown) => {

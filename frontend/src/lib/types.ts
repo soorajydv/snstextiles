@@ -3,7 +3,7 @@ export type Role = string;
 export type Permission =
   | 'dashboard.view' | 'orders.view' | 'orders.create' | 'orders.update' | 'orders.delete' | 'orders.artwork.upload' | 'orders.approve' | 'orders.feedback' | 'orders.stage.complete' | 'orders.send_back' | 'orders.deliver' | 'orders.invoice'
   | 'customers.view' | 'customers.create' | 'customers.update' | 'customers.delete'
-  | 'payments.view' | 'payments.record' | 'payments.verify' | 'payments.delete'
+  | 'payments.view' | 'payments.record' | 'payments.verify' | 'payments.delete' | 'payments.export'
   | 'inventory.view' | 'inventory.create' | 'inventory.update' | 'inventory.move' | 'inventory.adjust' | 'inventory.suppliers.create'
   | 'reports.view'
   | 'users.view' | 'users.create' | 'users.update' | 'users.password_reset' | 'users.delete'

@@ -1,4 +1,5 @@
 import fs from 'fs';
+import { Types } from 'mongoose';
 import { Order, type OrderDoc } from './order.model';
 import { Customer } from '../customers/customer.model';
 import { Payment } from '../payments/payment.model';
@@ -44,6 +45,34 @@ export function startOfToday() {
   return startOfDay(new Date());
 }
 
+export const PAYMENT_STATES = ['quote', 'unpaid', 'part', 'paid', 'due'] as const;
+export type PaymentState = (typeof PAYMENT_STATES)[number];
+
+/** Inclusive date range from YYYY-MM-DD strings (local time); null when neither bound is valid. */
+export function dayRange(from?: unknown, to?: unknown) {
+  const parse = (value: unknown, endOfDay: boolean) => {
+    if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+    const d = new Date(`${value}T${endOfDay ? '23:59:59.999' : '00:00:00'}`);
+    return Number.isNaN(d.getTime()) ? null : d;
+  };
+  const start = parse(from, false);
+  const end = parse(to, true);
+  if (!start && !end) return null;
+  return { ...(start ? { $gte: start } : {}), ...(end ? { $lte: end } : {}) };
+}
+
+/** Mongo condition for an order's payment state: awaiting a price, unpaid, part paid or fully paid. */
+export function paymentStateMatch(state?: unknown): Record<string, unknown> | null {
+  switch (state) {
+    case 'quote': return { $or: [{ totalAmount: { $lte: 0 } }, { totalAmount: null }] };
+    case 'unpaid': return { totalAmount: { $gt: 0 }, amountPaid: { $lte: 0 } };
+    case 'part': return { totalAmount: { $gt: 0 }, amountPaid: { $gt: 0 }, $expr: { $lt: ['$amountPaid', '$totalAmount'] } };
+    case 'paid': return { totalAmount: { $gt: 0 }, $expr: { $gte: ['$amountPaid', '$totalAmount'] } };
+    case 'due': return { totalAmount: { $gt: 0 }, $expr: { $lt: ['$amountPaid', '$totalAmount'] } };
+    default: return null;
+  }
+}
+
 // ---------- list & read ----------
 
 export async function listOrders(user: AuthUser, query: Record<string, unknown>) {
@@ -58,7 +87,8 @@ export async function listOrders(user: AuthUser, query: Record<string, unknown>)
   if (q.status) filter.status = q.status;
   if (q.source === 'website') filter.source = 'website';
   if (q.source === 'portal') filter.source = { $ne: 'website' };
-  if (q.customer && user.role !== 'customer') filter.customer = assertObjectId(q.customer, 'Customer');
+  // ObjectId, not string: this filter feeds an aggregation $match, which does not cast types.
+  if (q.customer && user.role !== 'customer') filter.customer = new Types.ObjectId(assertObjectId(q.customer, 'Customer'));
   if (q.due === 'overdue') {
     filter.dueDate = { $lt: startOfToday() };
     filter.$and = [...((filter.$and as object[]) ?? []), { stage: { $ne: 'delivered' } }];
@@ -70,6 +100,10 @@ export async function listOrders(user: AuthUser, query: Record<string, unknown>)
     filter.dueDate = { $gte: today, $lt: nextWeek };
     filter.$and = [...((filter.$and as object[]) ?? []), { stage: { $ne: 'delivered' } }];
   }
+  const created = dayRange(q.from, q.to);
+  if (created) filter.createdAt = created;
+  const paymentState = paymentStateMatch(q.payment);
+  if (paymentState) filter.$and = [...((filter.$and as object[]) ?? []), paymentState];
   if (q.search?.trim()) {
     const rx = { $regex: escapeRegex(q.search.trim()), $options: 'i' };
     const customers = await Customer.find({ name: rx }).select('_id').limit(200).lean();

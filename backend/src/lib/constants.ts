@@ -8,7 +8,7 @@ export const PERMISSIONS = [
   'dashboard.view',
   'orders.view', 'orders.create', 'orders.update', 'orders.delete', 'orders.artwork.upload', 'orders.approve', 'orders.feedback', 'orders.stage.complete', 'orders.send_back', 'orders.deliver', 'orders.invoice',
   'customers.view', 'customers.create', 'customers.update', 'customers.delete',
-  'payments.view', 'payments.record', 'payments.verify', 'payments.delete',
+  'payments.view', 'payments.record', 'payments.verify', 'payments.delete', 'payments.export',
   'inventory.view', 'inventory.create', 'inventory.update', 'inventory.move', 'inventory.adjust', 'inventory.suppliers.create',
   'reports.view',
   'users.view', 'users.create', 'users.update', 'users.password_reset', 'users.delete',
@@ -64,7 +64,7 @@ export const ROLE_PERMISSIONS: Record<BuiltInRole, Permission[]> = {
   printing: ['dashboard.view', 'orders.view', 'orders.stage.complete', 'inventory.view', 'inventory.move', 'settings.view', ...staffAttendance, ...profilePermissions],
   stitching: ['dashboard.view', 'orders.view', 'orders.stage.complete', 'inventory.view', 'inventory.move', 'settings.view', ...staffAttendance, ...profilePermissions],
   finishing: ['dashboard.view', 'orders.view', 'orders.stage.complete', 'inventory.view', 'inventory.move', 'settings.view', ...staffAttendance, ...profilePermissions],
-  accounts: ['dashboard.view', 'orders.view', 'orders.create', 'orders.update', 'orders.invoice', 'customers.view', 'customers.create', 'customers.update', 'payments.view', 'payments.record', 'payments.verify', 'reports.view', 'settings.view', ...LEGACY_PERMISSIONS['site.view'], ...LEGACY_PERMISSIONS['site.enquiries'], ...staffAttendance, ...profilePermissions],
+  accounts: ['dashboard.view', 'orders.view', 'orders.create', 'orders.update', 'orders.invoice', 'customers.view', 'customers.create', 'customers.update', 'payments.view', 'payments.record', 'payments.verify', 'payments.export', 'reports.view', 'settings.view', ...LEGACY_PERMISSIONS['site.view'], ...LEGACY_PERMISSIONS['site.enquiries'], ...staffAttendance, ...profilePermissions],
   customer: ['dashboard.view', 'orders.view', 'orders.create', 'orders.approve', 'orders.feedback', 'payments.view', 'payments.record', 'settings.view', ...profilePermissions],
 };
 

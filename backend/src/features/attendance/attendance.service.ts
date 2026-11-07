@@ -79,12 +79,26 @@ export async function listAttendance(user: AuthUser, query: Record<string, unkno
   const { page, limit, skip } = pagination(query, canReviewAll ? 50 : 30);
   const recordsQuery = Attendance.find(filter).populate('user', 'name email role').populate('approvedBy', 'name').sort(sortFor(q));
   if (!showAll) recordsQuery.skip(skip).limit(limit);
-  const [records, total] = await Promise.all([
+  const [records, total, matching] = await Promise.all([
     recordsQuery.lean(),
     Attendance.countDocuments(filter),
+    Attendance.find(filter).select('user status checkInAt checkOutAt').lean(),
   ]);
   const users = canReviewAll ? await User.find({ active: true, role: { $ne: 'customer' } }).select('name email role').sort({ name: 1 }).lean() : [];
-  return { records: records.map(toDto), total, page: showAll ? 1 : page, limit: showAll ? total : limit, users: users.map((item) => ({ id: String(item._id), name: item.name, email: item.email, role: item.role })) };
+  // Totals across every matching record (not only the current page).
+  const now = Date.now();
+  const summary = {
+    records: total,
+    employees: new Set(matching.map((r) => String(r.user))).size,
+    workedMinutes: matching.reduce((sum, r) => (r.status === 'approved' && r.checkOutAt
+      ? sum + Math.max(0, Math.floor((new Date(r.checkOutAt).getTime() - new Date(r.checkInAt).getTime()) / 60000)) : sum), 0),
+    openMinutes: matching.reduce((sum, r) => (r.status === 'approved' && !r.checkOutAt
+      ? sum + Math.max(0, Math.floor((now - new Date(r.checkInAt).getTime()) / 60000)) : sum), 0),
+    pending: matching.filter((r) => r.status === 'pending').length,
+    open: matching.filter((r) => r.status === 'approved' && !r.checkOutAt).length,
+    rejected: matching.filter((r) => r.status === 'rejected').length,
+  };
+  return { records: records.map(toDto), total, page: showAll ? 1 : page, limit: showAll ? total : limit, summary, users: users.map((item) => ({ id: String(item._id), name: item.name, email: item.email, role: item.role })) };
 }
 
 export async function exportAttendance(user: AuthUser, query: Record<string, unknown>) {

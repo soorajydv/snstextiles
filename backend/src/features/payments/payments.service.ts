@@ -1,13 +1,15 @@
 import { Types } from 'mongoose';
-import { Payment, type PaymentStatus } from './payment.model';
+import { Payment, PAYMENT_STATUSES, type PaymentStatus } from './payment.model';
 import { Order } from '../orders/order.model';
 import type { AuthUser } from '../../middleware/auth';
 import { assertObjectId, badRequest, conflict, notFound, pagination } from '../../lib/http';
-import { loadOrderForUser } from '../orders/order.workflow';
+import { loadOrderForUser, orderScope } from '../orders/order.workflow';
 import { audit } from '../audit/audit.service';
 import { removeStoredFile, storedFilePath } from '../../lib/uploads';
 import { publicUrl } from '../../lib/urls';
-import type { CreatePaymentInput } from './payments.validation';
+import { Customer } from '../customers/customer.model';
+import { dayRange, paymentStateMatch } from '../orders/orders.service';
+import type { BillingQuery, CreatePaymentInput } from './payments.validation';
 
 /** Keeps the cached order.amountPaid in sync with the payment ledger. */
 export async function recomputePaid(orderId: Types.ObjectId | string) {
@@ -57,6 +59,11 @@ export async function listPayments(user: AuthUser, query: Record<string, unknown
   }
   if (user.role === 'customer') filter.customer = user.customerId;
   else if (typeof query.customer === 'string') filter.customer = assertObjectId(query.customer, 'Customer');
+  const received = dayRange(query.from, query.to);
+  if (received) filter.receivedAt = received;
+  if (typeof query.status === 'string' && (PAYMENT_STATUSES as readonly string[]).includes(query.status)) {
+    filter.status = query.status === 'verified' ? { $in: ['verified', null] } : query.status;
+  }
 
   const [payments, total] = await Promise.all([
     Payment.find(filter)
@@ -179,4 +186,151 @@ export async function deletePayment(user: AuthUser, id: string) {
   await recomputePaid(orderRef._id);
   await audit(user, 'payment.deleted', 'Payment', id, `Deleted payment of ${payment.amount} on ${orderRef.orderNo}`);
   return { ok: true };
+}
+
+// ---------- billing: summary & exports ----------
+
+/** Customers only ever see their own records; staff may narrow to one customer. */
+function billingCustomer(user: AuthUser, query: BillingQuery) {
+  if (user.role === 'customer') return user.customerId ?? '000000000000000000000000';
+  return query.customer;
+}
+
+function billingOrderFilter(user: AuthUser, query: BillingQuery) {
+  const filter: Record<string, unknown> = { ...orderScope(user) };
+  const customer = billingCustomer(user, query);
+  if (customer) filter.customer = new Types.ObjectId(customer);
+  const created = dayRange(query.from, query.to);
+  if (created) filter.createdAt = created;
+  const state = paymentStateMatch(query.payment);
+  if (state) filter.$and = [state];
+  return filter;
+}
+
+function billingPaymentFilter(user: AuthUser, query: BillingQuery) {
+  const filter: Record<string, unknown> = {};
+  const customer = billingCustomer(user, query);
+  if (customer) filter.customer = new Types.ObjectId(customer);
+  const received = dayRange(query.from, query.to);
+  if (received) filter.receivedAt = received;
+  if (query.status) filter.status = query.status === 'verified' ? { $in: ['verified', null] } : query.status;
+  return filter;
+}
+
+/** Totals for the billing page across every matching record (not just the rows on screen). */
+export async function getBillingSummary(user: AuthUser, query: BillingQuery) {
+  const orderFilter = billingOrderFilter(user, query);
+  const paymentFilter = billingPaymentFilter(user, { ...query, status: undefined });
+  const customerId = billingCustomer(user, query);
+  const [orderTotals, paymentTotals, customer] = await Promise.all([
+    Order.aggregate<{ orders: number; value: number; paid: number; invoiced: number; awaitingPrice: number; sets: number }>([
+      { $match: orderFilter },
+      {
+        $group: {
+          _id: null,
+          orders: { $sum: 1 },
+          sets: { $sum: '$quantity' },
+          value: { $sum: '$totalAmount' },
+          paid: { $sum: '$amountPaid' },
+          invoiced: { $sum: { $cond: [{ $ifNull: ['$invoice.number', false] }, 1, 0] } },
+          awaitingPrice: { $sum: { $cond: [{ $gt: ['$totalAmount', 0] }, 0, 1] } },
+        },
+      },
+    ]),
+    Payment.aggregate<{ _id: string; amount: number; count: number }>([
+      { $match: paymentFilter },
+      { $group: { _id: { $ifNull: ['$status', 'verified'] }, amount: { $sum: '$amount' }, count: { $sum: 1 } } },
+    ]),
+    customerId ? Customer.findById(customerId).lean() : null,
+  ]);
+  const o = orderTotals[0] ?? { orders: 0, value: 0, paid: 0, invoiced: 0, awaitingPrice: 0, sets: 0 };
+  const byStatus = Object.fromEntries(paymentTotals.map((p) => [p._id, { amount: p.amount, count: p.count }]));
+  return {
+    orders: o.orders,
+    sets: o.sets,
+    orderValue: o.value,
+    collected: o.paid,
+    outstanding: Math.max(0, o.value - o.paid),
+    invoicesIssued: o.invoiced,
+    awaitingPrice: o.awaitingPrice,
+    payments: {
+      verified: byStatus.verified ?? { amount: 0, count: 0 },
+      pending: byStatus.pending ?? { amount: 0, count: 0 },
+      rejected: byStatus.rejected ?? { amount: 0, count: 0 },
+    },
+    customer: customer ? {
+      id: String(customer._id), name: customer.name, contactPerson: customer.contactPerson, phone: customer.phone,
+      email: customer.email, address: customer.address, panNumber: customer.panNumber,
+    } : null,
+  };
+}
+
+const csvCell = (value: unknown) => {
+  let text = value === null || value === undefined ? '' : String(value);
+  // Neutralise spreadsheet formula injection.
+  if (/^[=+\-@]/.test(text)) text = `'${text}`;
+  return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+};
+const toCsv = (rows: unknown[][]) => rows.map((row) => row.map(csvCell).join(',')).join('\r\n');
+const isoDay = (d: Date | string | null | undefined) => (d ? new Date(d).toISOString().slice(0, 10) : '');
+const stateOf = (o: { totalAmount: number; amountPaid: number }) => (!o.totalAmount ? 'Awaiting price' : o.amountPaid >= o.totalAmount ? 'Paid' : o.amountPaid > 0 ? 'Part paid' : 'Unpaid');
+const nameOf = (ref: unknown) => (ref && typeof ref === 'object' && 'name' in ref ? String((ref as { name: unknown }).name) : '');
+const orderNoOf = (ref: unknown) => (ref && typeof ref === 'object' && 'orderNo' in ref ? String((ref as { orderNo: unknown }).orderNo) : '');
+const createdAtOf = (doc: unknown) => (doc as { createdAt?: Date }).createdAt;
+
+export async function exportInvoicesCsv(user: AuthUser, query: BillingQuery) {
+  const orders = await Order.find(billingOrderFilter(user, query)).populate('customer', 'name').sort({ createdAt: -1 }).lean();
+  const header = ['Order', 'Invoice', 'Invoice date', 'Customer', 'Team', 'Product', 'Quantity', 'Unit rate', 'Total', 'Paid', 'Balance', 'Payment state', 'Stage', 'Ordered', 'Due'];
+  return toCsv([header, ...orders.map((o) => [
+    o.orderNo, o.invoice?.number ?? '', isoDay(o.invoice?.issuedAt), nameOf(o.customer), o.teamName, o.productConfig,
+    o.quantity, o.unitRate, o.totalAmount, o.amountPaid, Math.max(0, o.totalAmount - o.amountPaid), stateOf(o), o.stage, isoDay(createdAtOf(o)), isoDay(o.dueDate),
+  ])]);
+}
+
+export async function exportPaymentsCsv(user: AuthUser, query: BillingQuery) {
+  const payments = await Payment.find(billingPaymentFilter(user, query)).populate('order', 'orderNo').populate('customer', 'name').populate('recordedBy', 'name').sort({ receivedAt: -1 }).lean();
+  const header = ['Date', 'Order', 'Customer', 'Method', 'Reference', 'Amount', 'Status', 'Recorded by', 'Note', 'Rejection reason'];
+  return toCsv([header, ...payments.map((p) => [
+    isoDay(p.receivedAt), orderNoOf(p.order), nameOf(p.customer), p.method, p.reference,
+    p.amount, p.status ?? 'verified', nameOf(p.recordedBy), p.note, p.rejectionReason ?? '',
+  ])]);
+}
+
+/** Customer statement: orders as charges and verified payments as credits, oldest first with a running balance. */
+export async function exportStatementCsv(user: AuthUser, query: BillingQuery) {
+  const customerId = billingCustomer(user, query);
+  if (!customerId) throw badRequest('customer: Choose a customer to export a statement');
+  const customer = await Customer.findById(customerId).lean();
+  if (!customer) throw notFound('Customer not found');
+  const scoped: BillingQuery = { ...query, customer: customerId, payment: undefined, status: undefined };
+  const [orders, payments] = await Promise.all([
+    Order.find(billingOrderFilter(user, scoped)).lean(),
+    Payment.find({ ...billingPaymentFilter(user, scoped), status: { $in: ['verified', null] } }).populate('order', 'orderNo').lean(),
+  ]);
+  const entries = [
+    ...orders.filter((o) => o.totalAmount > 0).map((o) => ({ date: createdAtOf(o) ?? o.dueDate, type: 'Order', ref: o.orderNo, detail: `${o.quantity} × ${o.productConfig}${o.invoice?.number ? ` (invoice ${o.invoice.number})` : ''}`, debit: o.totalAmount, credit: 0 })),
+    ...payments.map((p) => ({ date: p.receivedAt, type: 'Payment', ref: orderNoOf(p.order), detail: `${p.method}${p.reference ? ` · ${p.reference}` : ''}`, debit: 0, credit: p.amount })),
+  ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  let balance = 0;
+  const rows = entries.map((e) => {
+    balance += e.debit - e.credit;
+    return [isoDay(e.date), e.type, e.ref, e.detail, e.debit || '', e.credit || '', balance];
+  });
+  const totalDebit = entries.reduce((sum, e) => sum + e.debit, 0);
+  const totalCredit = entries.reduce((sum, e) => sum + e.credit, 0);
+  const period = query.from || query.to ? `${query.from ?? 'start'} to ${query.to ?? 'today'}` : 'All time';
+  return {
+    customerName: customer.name,
+    csv: toCsv([
+      ['Statement of account'],
+      ['Customer', customer.name],
+      ['Contact', [customer.contactPerson, customer.phone, customer.email].filter(Boolean).join(' · ')],
+      ['Period', period],
+      [],
+      ['Date', 'Type', 'Order', 'Details', 'Charge', 'Payment', 'Balance'],
+      ...rows,
+      [],
+      ['', '', '', 'Totals', totalDebit, totalCredit, totalDebit - totalCredit],
+    ]),
+  };
 }
