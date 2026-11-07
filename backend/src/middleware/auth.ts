@@ -73,7 +73,7 @@ export function requireRole(...roles: Role[]) {
 export function requirePermission(permission: Permission) {
   return (req: Request, _res: Response, next: NextFunction) => {
     if (!req.user || !req.user.permissions.includes(permission)) {
-      throw forbidden(`You do not have permission to ${permission.replace('.', ' ')}`);
+      throw forbidden(`You do not have permission to ${permission.replace(/[._]/g, ' ')}`);
     }
     next();
   };

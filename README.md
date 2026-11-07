@@ -107,10 +107,18 @@ breakdown and names/numbers become the player roster, and an optional advance wi
 as a pending payment for accounts to verify. From there the normal design → approval → production → delivery workflow
 applies, and customers follow it in the portal.
 
-**Website management** is in the portal sidebar under *Website* (permissions `site.view`, `site.manage`,
-`site.enquiries`; the owner always has them): overview, website orders, products, categories, enquiries,
-pages & blog, reviews, newsletter subscribers and website settings (contact details, homepage hero/banner/story,
-FAQs, testimonials, gallery, checkout rules, payment instructions, SEO).
+**Website management** is in the portal sidebar under *Website*: overview, website orders, products, categories,
+enquiries, pages & blog, reviews, newsletter subscribers and website settings (contact details, homepage
+hero/banner/story, FAQs, testimonials, gallery, checkout rules, payment instructions, SEO).
+
+### Permissions
+
+Every API route is guarded by a permission for that one action — e.g. `users.view`, `users.create`,
+`users.update`, `users.password_reset`, `users.delete`, or `site.products.view` / `.create` / `.update` /
+`.delete` / `.import`. The full list lives in `backend/src/lib/constants.ts` (`PERMISSIONS`) and is grouped on the
+*Roles & permissions* page. The owner role always holds every permission. Roles saved before the per-action split
+(with keys such as `users.manage` or `site.manage`) are converted automatically at startup to the equivalent set of
+new permissions (`LEGACY_PERMISSIONS`), so nobody gains or loses access.
 
 Set `NEXT_PUBLIC_SITE_URL` (default `https://snstextiles.com`) for the sitemap and sharing links.
 
