@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { ProductGallery } from '@/components/website/ProductGallery';
 import { ProductPurchase } from '@/components/website/ProductPurchase';
 import { ReviewForm } from '@/components/website/ReviewForm';
+import { FavoriteButton } from '@/components/website/favorites';
 import { Breadcrumbs, Price, ProductCard, Prose, Stars } from '@/components/website/shop-ui';
 import { SiteIcon } from '@/components/website/SiteIcon';
 import { renderMarkdown, markdownToText } from '@/lib/markdown';
@@ -64,6 +65,7 @@ export default async function ProductPage({ params }: Props) {
             <ProductGallery product={product} />
             <div className="pdp-info">
               {category && <Link className="pcard-cat" href={`/category/${category.slug}`}>{category.name}</Link>}
+              <FavoriteButton product={product} />
               <h1>{product.name}</h1>
               <div className="pdp-meta">
                 {product.ratingCount > 0 ? <a href="#reviews"><Stars count={product.ratingCount} value={product.ratingAvg} /></a> : <a className="muted-link" href="#reviews">No reviews yet</a>}

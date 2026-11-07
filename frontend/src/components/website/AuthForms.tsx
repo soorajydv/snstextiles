@@ -21,7 +21,7 @@ export function AuthForms({ initialMode = 'login', onSignedIn, compact }: Props)
 }
 
 function LoginForm({ onSignedIn }: { onSignedIn: (user: SiteUser) => void }) {
-  const [identifier, setIdentifier] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -31,7 +31,7 @@ function LoginForm({ onSignedIn }: { onSignedIn: (user: SiteUser) => void }) {
     setBusy(true);
     setError('');
     try {
-      const result = await siteRequest<{ user: SiteUser }>('/auth/login', { body: { identifier, password } });
+      const result = await siteRequest<{ user: SiteUser }>('/auth/login', { body: { identifier: username, password } });
       onSignedIn(result.user);
     } catch (err) {
       setError(err instanceof SiteRequestError ? err.message : 'Could not sign in.');
@@ -41,7 +41,7 @@ function LoginForm({ onSignedIn }: { onSignedIn: (user: SiteUser) => void }) {
 
   return (
     <form className="auth-form" onSubmit={submit}>
-      <label className="buy-field"><span>Email, username or phone</span><input autoComplete="username" onChange={(e) => setIdentifier(e.target.value)} required value={identifier} /></label>
+      <label className="buy-field"><span>Username *</span><input autoComplete="username" minLength={3} onChange={(e) => setUsername(e.target.value)} placeholder="Your username" required value={username} /></label>
       <label className="buy-field"><span>Password</span><input autoComplete="current-password" onChange={(e) => setPassword(e.target.value)} required type="password" value={password} /></label>
       {error && <p className="form-error" role="alert">{error}</p>}
       <button className="site-btn site-btn-dark" disabled={busy} type="submit">{busy ? 'Signing in…' : 'Sign in'}</button>

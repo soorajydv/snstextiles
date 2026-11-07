@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Archivo, Inter } from 'next/font/google';
 import { CartProvider } from '@/components/website/cart';
+import { FavoritesProvider } from '@/components/website/favorites';
 import { SiteFooter } from '@/components/website/SiteFooter';
 import { SiteHeader } from '@/components/website/SiteHeader';
 import { SiteIcon } from '@/components/website/SiteIcon';
@@ -35,6 +36,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
     <div className={`site ${display.variable} ${body.variable}`} id="top">
       <a className="site-skip" href="#main">Skip to content</a>
       <CartProvider>
+        <FavoritesProvider>
         {(parts.length > 0 || settings.announcementRight) && (
           <div className="site-utility">
             <div className="wrap site-utility-inner">
@@ -51,6 +53,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
             <SiteIcon name="whatsapp" size={28} />
           </a>
         )}
+        </FavoritesProvider>
       </CartProvider>
     </div>
   );

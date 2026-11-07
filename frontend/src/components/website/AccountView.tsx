@@ -66,6 +66,7 @@ export function AccountView() {
           <a href={appPath('/orders')}><SiteIcon name="file" size={18} /> Order portal</a>
           <a href={appPath('/billing')}><SiteIcon name="lock" size={18} /> Payments & invoices</a>
           <a href={appPath('/profile')}><SiteIcon name="user" size={18} /> Profile & password</a>
+          <Link href="/account/favorites"><SiteIcon name="star" size={18} /> Favorites</Link>
           <Link href="/order-tracking"><SiteIcon name="truck" size={18} /> Track an order</Link>
           <button onClick={logout} type="button"><SiteIcon name="arrow" size={18} /> Sign out</button>
         </nav>

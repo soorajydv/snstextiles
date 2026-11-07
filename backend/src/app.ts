@@ -20,6 +20,7 @@ import { auditRouter } from './features/audit/audit.route';
 import attendanceRoutes from './features/attendance/attendance.route';
 import roleRoutes from './features/roles/roles.route';
 import publicSiteRoutes from './features/site/site.public.route';
+import favoriteRoutes from './features/favorites/favorite.route';
 import adminSiteRoutes from './features/site/site.admin.route';
 import { getLogoController } from './features/settings/settings.controller';
 
@@ -42,6 +43,7 @@ export function createApp() {
   app.use('/api/auth', authRoutes);
   // Public website: catalogue, content, enquiry forms and the signed-in checkout.
   app.use('/api/public/site', publicSiteRoutes);
+  app.use('/api/public/site/favorites', favoriteRoutes);
 
   const api = express.Router();
   api.use(requireAuth);

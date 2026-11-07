@@ -46,11 +46,15 @@ export async function getPublicProduct(slug: string) {
   const categoryIds = (product.categories as unknown as { _id: unknown }[]).map((c) => c._id);
   const relatedFilter: Record<string, unknown> = { _id: { $ne: product._id }, published: true };
   if (categoryIds.length) relatedFilter.categories = { $in: categoryIds };
-  const [related, reviews] = await Promise.all([
+  let [related, reviews] = await Promise.all([
     SiteProduct.find(relatedFilter)
       .sort({ featured: -1, salesCount: -1, createdAt: -1 }).limit(8).populate('categories', 'name slug').lean(),
     SiteReview.find({ product: product._id, status: 'approved' }).sort({ createdAt: -1 }).limit(50).lean(),
   ]);
+  if (!related.length && categoryIds.length) {
+    related = await SiteProduct.find({ _id: { $ne: product._id }, published: true })
+      .sort({ featured: -1, salesCount: -1, createdAt: -1 }).limit(8).populate('categories', 'name slug').lean();
+  }
   return { product: productDto(product), related: related.map((p) => productDto(p)), reviews: reviews.map((r) => reviewDto(r)) };
 }
 

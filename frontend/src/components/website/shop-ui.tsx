@@ -4,6 +4,7 @@ import { npr, siteImage } from '@/lib/site-client';
 import type { SiteProduct } from '@/lib/types';
 import { JerseyArt, type JerseyKind } from './JerseyArt';
 import { SiteIcon } from './SiteIcon';
+import { FavoriteButton } from './favorites';
 
 export function Price({ product, large }: { product: Pick<SiteProduct, 'price' | 'salePrice' | 'finalPrice'>; large?: boolean }) {
   const onSale = product.salePrice !== null && product.salePrice < product.price;
@@ -52,14 +53,17 @@ export function ProductCard({ product, priority }: { product: SiteProduct; prior
   const secondImage = product.images[1] ? siteImage(product.images[1]) : '';
   return (
     <article className="pcard">
-      <Link className="pcard-media" href={`/product/${product.slug}`} aria-label={product.name}>
-        <ProductImage product={product} priority={priority} />
-        {secondImage && <img alt="" aria-hidden="true" className="pcard-alt" loading="lazy" src={secondImage} />}
-        <span className="pcard-badges">
-          {onSale && <span className="badge badge-sale">−{Math.round(((product.price - product.finalPrice) / product.price) * 100)}%</span>}
-          {product.stockStatus === 'out_of_stock' && <span className="badge badge-muted">Sold out</span>}
-        </span>
-      </Link>
+      <div className="pcard-media-wrap">
+        <Link className="pcard-media" href={`/product/${product.slug}`} aria-label={product.name}>
+          <ProductImage product={product} priority={priority} />
+          {secondImage && <img alt="" aria-hidden="true" className="pcard-alt" loading="lazy" src={secondImage} />}
+          <span className="pcard-badges">
+            {onSale && <span className="badge badge-sale">−{Math.round(((product.price - product.finalPrice) / product.price) * 100)}%</span>}
+            {product.stockStatus === 'out_of_stock' && <span className="badge badge-muted">Sold out</span>}
+          </span>
+        </Link>
+        <FavoriteButton product={product} />
+      </div>
       <div className="pcard-body">
         {product.categories[0] && <Link className="pcard-cat" href={`/category/${product.categories[0].slug}`}>{product.categories[0].name}</Link>}
         <h3><Link href={`/product/${product.slug}`}>{product.name}</Link></h3>
