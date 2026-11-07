@@ -9,6 +9,7 @@ import { ConfirmModal, errorMessage } from '@/components/ui';
 import { useToast } from '@/components/Toast';
 import { canSeeMoney } from '@/lib/format';
 import type { Order } from '@/lib/types';
+import { WEBSITE_ENABLED } from '@/lib/features';
 
 const STATUSES = ['Design in progress', 'Awaiting approval', 'Changes requested', 'Design approved', 'In production', 'Quality check', 'Ready to dispatch', 'Delivered'];
 const PAGE_SIZE = 50;
@@ -23,6 +24,7 @@ export default function OrdersPage() {
   const [status, setStatus] = useState('');
   const [due, setDue] = useState('');
   const [sort, setSort] = useState('deadline');
+  const [source, setSource] = useState('');
   const [page, setPage] = useState(1);
   const [deleting, setDeleting] = useState<Order | null>(null);
 
@@ -30,7 +32,7 @@ export default function OrdersPage() {
     const t = setTimeout(() => setDebounced(search), 300);
     return () => clearTimeout(t);
   }, [search]);
-  useEffect(() => setPage(1), [debounced, stage, status, due, sort]);
+  useEffect(() => setPage(1), [debounced, stage, status, due, sort, source]);
 
   const qs = new URLSearchParams({ page: String(page), limit: String(PAGE_SIZE) });
   if (debounced) qs.set('search', debounced);
@@ -38,6 +40,7 @@ export default function OrdersPage() {
   if (status) qs.set('status', status);
   if (due) qs.set('due', due);
   qs.set('sort', sort);
+  if (source) qs.set('source', source);
   const { data, error, loading, reload } = useApi<{ orders: Order[]; total: number }>(`/orders?${qs}`);
   const pages = data ? Math.max(1, Math.ceil(data.total / PAGE_SIZE)) : 1;
 
@@ -78,6 +81,11 @@ export default function OrdersPage() {
           <option value="soon">Due in next 7 days</option>
           <option value="overdue">Overdue only</option>
         </select>
+        {WEBSITE_ENABLED && <select value={source} onChange={(e) => setSource(e.target.value)} aria-label="Order source">
+          <option value="">All sources</option>
+          <option value="website">Website shop</option>
+          <option value="portal">Portal / staff</option>
+        </select>}
         <select value={sort} onChange={(e) => setSort(e.target.value)} aria-label="Sort orders">
           <option value="deadline">Nearest deadline</option>
           <option value="recent">Recently added</option>

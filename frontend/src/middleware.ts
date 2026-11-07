@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { APP_BASE_PATH } from '@/lib/paths';
+import { WEBSITE_ENABLED } from '@/lib/features';
 
 const adminSegments = new Set([
   'activity',
@@ -21,17 +22,61 @@ const adminSegments = new Set([
   'reset-password',
   'roles',
   'settings',
+  'site',
   'users',
 ]);
+
+/** Old WordPress / WooCommerce addresses mapped to the new site so links and search results keep working. */
+const LEGACY_PATHS: Record<string, string> = {
+  '/website': '/',
+  '/store': '/shop',
+  '/blogs': '/blog',
+  '/signup': '/account/register',
+  '/my-account': '/account',
+};
+
+function legacyRedirect(pathname: string): string | null {
+  const clean = pathname.replace(/\/+$/, '') || '/';
+  if (LEGACY_PATHS[clean]) return LEGACY_PATHS[clean];
+  // /product-category/sports-wear/football-jersey/ → /category/football-jersey
+  if (clean.startsWith('/product-category/')) {
+    const parts = clean.split('/').filter(Boolean);
+    const pageIndex = parts.indexOf('page');
+    const slugs = pageIndex > 0 ? parts.slice(1, pageIndex) : parts.slice(1);
+    const page = pageIndex > 0 ? parts[pageIndex + 1] : '';
+    return slugs.length ? `/category/${slugs[slugs.length - 1]}${page ? `?page=${page}` : ''}` : '/shop';
+  }
+  // /shop/page/3/ → /shop?page=3
+  const shopPage = /^\/shop\/page\/(\d+)$/.exec(clean);
+  if (shopPage) return `/shop?page=${shopPage[1]}`;
+  return null;
+}
+
+/** Pages of the public website (not the portal, internal admin routes or static files such as images). */
+function isPublicSitePath(pathname: string) {
+  if (pathname === APP_BASE_PATH || pathname.startsWith(`${APP_BASE_PATH}/`) || pathname.startsWith('/admin')) return false;
+  if (pathname === '/sitemap.xml') return true;
+  return !/\.[a-z0-9]+$/i.test(pathname);
+}
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const segment = pathname.split('/')[1];
 
-  if (pathname === '/website') {
+  if (!WEBSITE_ENABLED && !adminSegments.has(segment) && isPublicSitePath(pathname)) {
     const url = request.nextUrl.clone();
-    url.pathname = '/';
+    url.pathname = `${APP_BASE_PATH}/login`;
+    url.search = '';
     return NextResponse.redirect(url);
+  }
+
+  const legacy = legacyRedirect(pathname);
+  if (legacy) {
+    const url = request.nextUrl.clone();
+    const [path, query] = legacy.split('?');
+    url.pathname = path;
+    if (query) url.search = `?${query}`;
+    return NextResponse.redirect(url, 301);
   }
 
   if (adminSegments.has(segment)) {

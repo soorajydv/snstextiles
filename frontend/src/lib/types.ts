@@ -1,9 +1,24 @@
 export type Role = string;
+/** Mirrors PERMISSIONS in backend/src/lib/constants.ts — one permission per action. */
 export type Permission =
   | 'dashboard.view' | 'orders.view' | 'orders.create' | 'orders.update' | 'orders.delete' | 'orders.artwork.upload' | 'orders.approve' | 'orders.feedback' | 'orders.stage.complete' | 'orders.send_back' | 'orders.deliver' | 'orders.invoice'
-  | 'customers.view' | 'customers.manage' | 'customers.delete' | 'payments.view' | 'payments.record' | 'payments.verify' | 'payments.delete'
-  | 'inventory.view' | 'inventory.manage' | 'inventory.move' | 'inventory.adjust' | 'reports.view' | 'users.manage' | 'settings.view' | 'settings.manage' | 'audit.view'
-  | 'roles.manage' | 'profile.manage' | 'account.delete' | 'attendance.view' | 'attendance.checkin' | 'attendance.checkout' | 'attendance.approve';
+  | 'customers.view' | 'customers.create' | 'customers.update' | 'customers.delete'
+  | 'payments.view' | 'payments.record' | 'payments.verify' | 'payments.delete'
+  | 'inventory.view' | 'inventory.create' | 'inventory.update' | 'inventory.move' | 'inventory.adjust' | 'inventory.suppliers.create'
+  | 'reports.view'
+  | 'users.view' | 'users.create' | 'users.update' | 'users.password_reset' | 'users.delete'
+  | 'roles.view' | 'roles.create' | 'roles.update' | 'roles.delete'
+  | 'settings.view' | 'settings.update' | 'audit.view' | 'audit.retention.update'
+  | 'profile.update' | 'account.delete'
+  | 'attendance.view' | 'attendance.checkin' | 'attendance.checkout' | 'attendance.approve'
+  | 'site.overview' | 'site.settings.view' | 'site.settings.update' | 'site.media.view' | 'site.media.upload' | 'site.media.delete'
+  | 'site.categories.view' | 'site.categories.create' | 'site.categories.update' | 'site.categories.delete'
+  | 'site.products.view' | 'site.products.create' | 'site.products.update' | 'site.products.delete' | 'site.products.import'
+  | 'site.pages.view' | 'site.pages.create' | 'site.pages.update' | 'site.pages.delete'
+  | 'site.posts.view' | 'site.posts.create' | 'site.posts.update' | 'site.posts.delete'
+  | 'site.enquiries.view' | 'site.enquiries.update' | 'site.enquiries.delete'
+  | 'site.reviews.view' | 'site.reviews.moderate' | 'site.reviews.delete'
+  | 'site.subscribers.view' | 'site.subscribers.export' | 'site.subscribers.delete';
 
 export interface RoleDefinition {
   key: Role;
@@ -77,6 +92,10 @@ export interface Player {
 export interface Order {
   id: string;
   orderNo: string;
+  source?: 'portal' | 'website';
+  productName?: string;
+  checkoutRef?: string;
+  shipping?: { method: string; recipient: string; phone: string; address: string; city: string } | null;
   customer: { id: string; name: string; phone?: string };
   teamName: string;
   productConfig: string;
@@ -224,4 +243,137 @@ export interface AttendanceRecord {
   rejectionReason: string;
   createdAt: string;
   workedMinutes?: number;
+}
+
+// ---------- public website ----------
+
+export type StockStatus = 'in_stock' | 'made_to_order' | 'out_of_stock';
+export type ShopSize = 'XS' | 'S' | 'M' | 'L' | 'XL' | '2XL' | '3XL' | '4XL';
+export const SHOP_SIZES: ShopSize[] = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL'];
+
+export interface SiteCategory {
+  id: string;
+  name: string;
+  slug: string;
+  parent: string | null;
+  description: string;
+  image: string;
+  sortOrder: number;
+  showOnHome: boolean;
+  published: boolean;
+  productCount?: number;
+}
+
+export interface SiteProduct {
+  id: string;
+  name: string;
+  slug: string;
+  sku: string;
+  shortDescription: string;
+  description: string;
+  features: string[];
+  images: string[];
+  tags: string[];
+  categories: { id: string; name: string; slug: string }[];
+  price: number;
+  salePrice: number | null;
+  finalPrice: number;
+  productConfig: string;
+  neckTypes: string[];
+  sleeves: string[];
+  sizes: ShopSize[];
+  colors: { name: string; hex: string }[];
+  allowPersonalisation: boolean;
+  allowDesignUpload: boolean;
+  minQuantity: number;
+  stockStatus: StockStatus;
+  featured: boolean;
+  ratingAvg: number;
+  ratingCount: number;
+  seoTitle: string;
+  seoDescription: string;
+  createdAt: string;
+  // admin only
+  published?: boolean;
+  sortOrder?: number;
+  salesCount?: number;
+  wooId?: number | null;
+}
+
+export interface SitePage {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string;
+  content: string;
+  published: boolean;
+  showInFooter: boolean;
+  seoTitle: string;
+  seoDescription: string;
+  updatedAt: string;
+}
+
+export interface SitePost {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string;
+  content?: string;
+  coverImage: string;
+  tags: string[];
+  authorName: string;
+  published: boolean;
+  publishedAt: string;
+  seoTitle: string;
+  seoDescription: string;
+  updatedAt: string;
+}
+
+export interface SiteReview {
+  id: string;
+  name: string;
+  rating: number;
+  body: string;
+  createdAt: string;
+  email?: string;
+  status?: 'pending' | 'approved' | 'rejected';
+  product?: { id: string; name: string; slug: string } | null;
+}
+
+export interface SiteEnquiry {
+  id: string;
+  type: 'custom' | 'contact';
+  name: string;
+  email: string;
+  phone: string;
+  team: string;
+  product: string;
+  quantity: number | null;
+  neededBy: string | null;
+  subject: string;
+  message: string;
+  status: 'new' | 'in_progress' | 'closed';
+  notes: string;
+  createdAt: string;
+  files: { originalName: string; size: number; mimeType: string; url: string }[];
+}
+
+export interface SiteLink { label: string; href: string }
+
+export interface SiteSettings {
+  brandName: string;
+  tagline: string;
+  announcement: string;
+  announcementRight: string;
+  contact: { phones: string[]; email: string; whatsapp: string; address: string; openingHours: string; mapEmbedUrl: string };
+  social: { facebook: string; instagram: string; tiktok: string; youtube: string };
+  hero: { kicker: string; titleLine1: string; titleLine2: string; subtitle: string; primaryCta: SiteLink; secondaryCta: SiteLink; image: string };
+  banner: { kicker: string; title: string; highlight: string; subtitle: string; cta: SiteLink; image: string };
+  story: { kicker: string; title: string; body: string };
+  faqs: { q: string; a: string }[];
+  testimonials: { name: string; role: string; quote: string }[];
+  gallery: string[];
+  checkout: { minLeadDays: number; deliveryMethods: string[]; deliveryNote: string; paymentInstructions: string };
+  seo: { title: string; description: string };
+  updatedAt?: string;
 }

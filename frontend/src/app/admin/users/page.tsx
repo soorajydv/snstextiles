@@ -6,7 +6,7 @@ import { useAuth } from '@/components/AuthProvider';
 import { useToast } from '@/components/Toast';
 import { Badge, ConfirmModal, Field, Modal, Notice, PageHeader, Spinner, errorMessage } from '@/components/ui';
 import { roleLabel, fmtDateTime } from '@/lib/format';
-import type { Customer, Role, UserRow } from '@/lib/types';
+import type { Customer, Permission, Role, UserRow } from '@/lib/types';
 
 const ROLE_SCOPE: Record<Role, string> = {
   owner: 'Full access, dispatch, users and settings',
@@ -31,6 +31,7 @@ const emptyCustomerDetails: CustomerDetails = {
 
 export default function UsersPage() {
   const { user: me, meta } = useAuth();
+  const can = (permission: Permission) => meta.permissions.includes(permission);
   const toast = useToast();
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -41,7 +42,7 @@ export default function UsersPage() {
   const userParams = new URLSearchParams({ page: String(page), limit: '50' });
   if (debouncedSearch) userParams.set('search', debouncedSearch);
   if (role) userParams.set('role', role);
-  const { data, error, reload } = useApi<{ users: UserRow[]; total: number; limit: number }>(`/users?${userParams}`);
+  const { data, error, reload } = useApi<{ users: UserRow[]; total: number; limit: number }>(can('users.view') ? `/users?${userParams}` : null);
   const [editing, setEditing] = useState<UserRow | 'new' | null>(null);
   const [resetting, setResetting] = useState<UserRow | null>(null);
   const [userToDelete, setUserToDelete] = useState<UserRow | null>(null);
@@ -57,7 +58,7 @@ export default function UsersPage() {
     }
   }
 
-  if (!meta.permissions.includes('users.manage')) return <Notice tone="error">You do not have permission to manage users.</Notice>;
+  if (!can('users.view')) return <Notice tone="error">You do not have permission to view users.</Notice>;
 
   return (
     <>
@@ -66,7 +67,7 @@ export default function UsersPage() {
         eyebrow="ACCESS CONTROL"
         title="Users & permissions"
         subtitle="Individual accounts with least-privilege roles. Permissions are enforced by the server, not just hidden in the UI."
-        actions={<button className="btn primary" onClick={() => setEditing('new')}>＋ Add user</button>}
+        actions={can('users.create') && <button className="btn primary" onClick={() => setEditing('new')}>＋ Add user</button>}
       />
       {error && <Notice tone="error">{error}</Notice>}
       <div className="toolbar">
@@ -90,9 +91,9 @@ export default function UsersPage() {
                     <td>{u.lastLoginAt ? fmtDateTime(u.lastLoginAt) : <span className="muted">Never</span>}</td>
                     <td><Badge>{u.active ? 'Active' : 'Inactive'}</Badge></td>
                     <td>
-                      <button className="btn small" onClick={() => setEditing(u)}>Edit</button>{' '}
-                      <button className="btn small" onClick={() => setResetting(u)}>Reset password</button>{' '}
-                      {u.id !== me.id && <button className="btn small danger" onClick={() => setUserToDelete(u)}>Delete</button>}
+                      {can('users.update') && <><button className="btn small" onClick={() => setEditing(u)}>Edit</button>{' '}</>}
+                      {can('users.password_reset') && <><button className="btn small" onClick={() => setResetting(u)}>Reset password</button>{' '}</>}
+                      {u.id !== me.id && can('users.delete') && <button className="btn small danger" onClick={() => setUserToDelete(u)}>Delete</button>}
                     </td>
                   </tr>
                 ))}

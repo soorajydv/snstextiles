@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
-import { requireAuth } from '../../middleware/auth';
+import { requireAuth, requirePermission } from '../../middleware/auth';
 import { avatarUpload } from '../../lib/uploads';
 import {
   avatarController,
@@ -46,10 +46,10 @@ router.post('/logout', logoutController);
 router.get('/me', requireAuth, meController);
 router.get('/avatar', requireAuth, avatarController);
 router.get('/avatar/:storedName', requireAuth, avatarController);
-router.patch('/profile', requireAuth, updateProfileController);
-router.patch('/avatar', requireAuth, avatarUpload.single('avatar'), uploadAvatarController);
-router.delete('/avatar', requireAuth, deleteAvatarController);
-router.delete('/account', requireAuth, deleteAccountController);
-router.post('/change-password', requireAuth, changePasswordController);
+router.patch('/profile', requireAuth, requirePermission('profile.update'), updateProfileController);
+router.patch('/avatar', requireAuth, requirePermission('profile.update'), avatarUpload.single('avatar'), uploadAvatarController);
+router.delete('/avatar', requireAuth, requirePermission('profile.update'), deleteAvatarController);
+router.delete('/account', requireAuth, requirePermission('account.delete'), deleteAccountController);
+router.post('/change-password', requireAuth, requirePermission('profile.update'), changePasswordController);
 
 export default router;

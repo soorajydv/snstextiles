@@ -12,7 +12,9 @@ type MoveType = 'in' | 'out' | 'adjust';
 
 export default function InventoryPage() {
   const { meta } = useAuth();
-  const canManage = meta.permissions.includes('inventory.manage');
+  const canCreate = meta.permissions.includes('inventory.create');
+  const canUpdate = meta.permissions.includes('inventory.update');
+  const canAddSupplier = meta.permissions.includes('inventory.suppliers.create');
   const canMove = meta.permissions.includes('inventory.move');
   const canAdjust = meta.permissions.includes('inventory.adjust');
   const [search, setSearch] = useState('');
@@ -27,7 +29,7 @@ export default function InventoryPage() {
 
   useEffect(() => setItemPage(1), [search, category, stock, sort]);
   const itemParams = new URLSearchParams({ page: String(itemPage), limit: '50' });
-  if (canManage) itemParams.set('all', '1');
+  if (canUpdate) itemParams.set('all', '1');
   if (search.trim()) itemParams.set('search', search.trim());
   if (category) itemParams.set('category', category);
   if (stock) itemParams.set('stock', stock);
@@ -49,7 +51,7 @@ export default function InventoryPage() {
         eyebrow="MATERIALS CONTROL"
         title="Inventory & materials"
         subtitle="Fabric, printing consumables, thread, trims and packaging. Record stock received and issued to the floor."
-        actions={canManage && <><button className="btn" onClick={() => setAddingSupplier(true)}>＋ Add supplier</button><button className="btn primary" onClick={() => setEditing('new')}>＋ Add material</button></>}
+        actions={(canAddSupplier || canCreate) && <>{canAddSupplier && <button className="btn" onClick={() => setAddingSupplier(true)}>＋ Add supplier</button>}{canCreate && <button className="btn primary" onClick={() => setEditing('new')}>＋ Add material</button>}</>}
       />
       <div className="stats">
         <StatCard label="Tracked materials" value={items.data?.activeTotal ?? '—'} note="Active SKUs" icon="▧" />
@@ -104,7 +106,7 @@ export default function InventoryPage() {
                       {canMove && <><button className="btn small" onClick={() => setMoving({ item: i, type: 'in' })}>＋ In</button>{' '}
                       <button className="btn small" onClick={() => setMoving({ item: i, type: 'out' })}>− Issue</button>{' '}</>}
                       {canAdjust && <button className="btn small" onClick={() => setMoving({ item: i, type: 'adjust' })}>Count</button>}{' '}
-                      {canManage && <button className="btn small" onClick={() => setEditing(i)}>Edit</button>}
+                      {canUpdate && <button className="btn small" onClick={() => setEditing(i)}>Edit</button>}
                     </td>
                   </tr>
                 ))}

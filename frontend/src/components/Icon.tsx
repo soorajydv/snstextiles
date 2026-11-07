@@ -3,7 +3,7 @@ import type { SVGProps } from 'react';
 export type IconName =
   | 'activity' | 'alert' | 'arrowUp' | 'attendance' | 'box' | 'chart' | 'check' | 'chevronLeft' | 'chevronRight' | 'close' | 'customers' | 'dashboard'
   | 'delivery' | 'download' | 'eye' | 'eyeOff' | 'install' | 'inventory' | 'menu' | 'moon' | 'orders' | 'production' | 'receipt'
-  | 'profile' | 'roles' | 'settings' | 'sidebar' | 'sun' | 'users' | 'logout' | 'edit' | 'trash';
+  | 'profile' | 'roles' | 'settings' | 'sidebar' | 'sun' | 'users' | 'logout' | 'edit' | 'trash' | 'globe' | 'tag' | 'mail' | 'star' | 'file' | 'image' | 'external';
 
 const PATHS: Record<IconName, React.ReactNode> = {
   activity: <><path d="M4 6h16M4 12h16M4 18h16" /><circle cx="7" cy="6" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="17" cy="18" r="1" /></>,
@@ -37,6 +37,13 @@ const PATHS: Record<IconName, React.ReactNode> = {
   sidebar: <><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M9 4v16M14 9l3 3-3 3" /></>,
   sun: <><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></>,
   trash: <><path d="M4 7h16M10 11v6M14 11v6M6 7l1 14h10l1-14M9 7V4h6v3" /></>,
+  globe: <><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3Z" /></>,
+  tag: <><path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9-9-9Z" /><circle cx="7.5" cy="7.5" r="1.5" /></>,
+  mail: <><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3.5 6.5 8.5 6.5 8.5-6.5" /></>,
+  star: <path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-6.2L3 9.6l6.2-.9L12 3Z" />,
+  file: <><path d="M6 3h8l4 4v14H6z" /><path d="M14 3v4h4M9 12h6M9 16h6" /></>,
+  image: <><rect x="3" y="4" width="18" height="16" rx="2" /><circle cx="8.5" cy="9.5" r="1.5" /><path d="m21 16-5-5-8 8" /></>,
+  external: <><path d="M14 4h6v6M20 4l-9 9" /><path d="M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5" /></>,
   users: <><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8" /></>,
 };
 

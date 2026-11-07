@@ -1,10 +1,10 @@
 import type { NextFunction, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { env } from '../config/env';
-import { User } from '../models/user.model';
+import { User } from '../features/users/user.model';
 import { HttpError, forbidden } from '../lib/http';
 import { type Permission, type Role } from '../lib/constants';
-import { permissionsForUserRole } from '../lib/roles';
+import { permissionsForUserRole } from '../features/roles/roles.service';
 
 export interface AuthUser {
   id: string;
@@ -73,7 +73,7 @@ export function requireRole(...roles: Role[]) {
 export function requirePermission(permission: Permission) {
   return (req: Request, _res: Response, next: NextFunction) => {
     if (!req.user || !req.user.permissions.includes(permission)) {
-      throw forbidden(`You do not have permission to ${permission.replace('.', ' ')}`);
+      throw forbidden(`You do not have permission to ${permission.replace(/[._]/g, ' ')}`);
     }
     next();
   };

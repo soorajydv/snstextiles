@@ -7,18 +7,22 @@ import { env } from './config/env';
 import { requireAuth } from './middleware/auth';
 import { errorHandler, notFoundHandler } from './middleware/error';
 import authRoutes from './features/auth/auth.route';
-import userRoutes from './routes/users';
-import customerRoutes from './routes/customers';
-import orderRoutes from './routes/orders';
-import paymentRoutes from './routes/payments';
-import inventoryRoutes from './routes/inventory';
-import dashboardRoutes from './routes/dashboard';
-import reportRoutes from './routes/reports';
-import { auditRouter, metaRouter, settingsRouter } from './routes/settings';
+import userRoutes from './features/users/users.route';
+import customerRoutes from './features/customers/customers.route';
+import orderRoutes from './features/orders/orders.route';
+import paymentRoutes from './features/payments/payments.route';
+import inventoryRoutes from './features/inventory/inventory.route';
+import dashboardRoutes from './features/dashboard/dashboard.route';
+import reportRoutes from './features/reports/reports.route';
+import { settingsRouter } from './features/settings/settings.route';
+import { metaRouter } from './features/settings/meta.route';
+import { auditRouter } from './features/audit/audit.route';
 import attendanceRoutes from './features/attendance/attendance.route';
-import roleRoutes from './routes/roles';
-import { getSettings } from './models/Settings';
-import { storedFilePath } from './lib/uploads';
+import roleRoutes from './features/roles/roles.route';
+import publicSiteRoutes from './features/site/site.public.route';
+import favoriteRoutes from './features/favorites/favorite.route';
+import adminSiteRoutes from './features/site/site.admin.route';
+import { getLogoController } from './features/settings/settings.controller';
 
 export function createApp() {
   const app = express();
@@ -34,15 +38,12 @@ export function createApp() {
   });
 
   // The login page needs the business logo before a user has authenticated.
-  app.get('/api/public/business-logo', async (_req, res) => {
-    const settings = await getSettings();
-    if (!settings.logoStoredName) { res.status(404).end(); return; }
-    res.type(settings.logoMimeType ?? 'application/octet-stream').sendFile(storedFilePath(settings.logoStoredName), (err) => {
-      if (err && !res.headersSent) res.status(404).end();
-    });
-  });
+  app.get('/api/public/business-logo', getLogoController);
 
   app.use('/api/auth', authRoutes);
+  // Public website: catalogue, content, enquiry forms and the signed-in checkout.
+  app.use('/api/public/site', publicSiteRoutes);
+  app.use('/api/public/site/favorites', favoriteRoutes);
 
   const api = express.Router();
   api.use(requireAuth);
@@ -58,6 +59,7 @@ export function createApp() {
   api.use('/users', userRoutes);
   api.use('/settings', settingsRouter);
   api.use('/audit', auditRouter);
+  api.use('/site', adminSiteRoutes);
   app.use('/api', api);
 
   app.use(notFoundHandler);

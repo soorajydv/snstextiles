@@ -93,6 +93,45 @@ Design & confirmation ──(customer approves latest artwork)──▶ Printing
 - **Production roles never see prices.** Customers only ever see their own orders.
 - Every critical action (orders, approvals, stage moves, payments, invoices, deliveries, stock, users) is written to the audit log.
 
+## Public website & online shop
+
+The public site (`frontend/src/app/(site)`) replaces the old WordPress/WooCommerce store at snstextiles.com:
+shop with search, category filters, price range and sorting; product pages with sizes, neck/sleeve options,
+team names & numbers and reviews; cart; checkout; customer accounts; order tracking; custom-jersey and contact
+forms; blog; CMS pages (About, policies…); FAQ; `sitemap.xml` and `robots.txt`. Old WordPress URLs
+(`/product-category/…`, `/store`, `/blogs`, `/my-account`, root-level blog posts) redirect to their new addresses.
+
+**Checkout creates real production orders.** A signed-in customer's cart becomes one factory order per cart line
+(source `website`), priced from the catalogue on the server. Uploaded designs become order reference files, the size
+breakdown and names/numbers become the player roster, and an optional advance with a payment screenshot is recorded
+as a pending payment for accounts to verify. From there the normal design → approval → production → delivery workflow
+applies, and customers follow it in the portal.
+
+**Website management** is in the portal sidebar under *Website*: overview, website orders, products, categories,
+enquiries, pages & blog, reviews, newsletter subscribers and website settings (contact details, homepage
+hero/banner/story, FAQs, testimonials, gallery, checkout rules, payment instructions, SEO).
+
+### Permissions
+
+Every API route is guarded by a permission for that one action — e.g. `users.view`, `users.create`,
+`users.update`, `users.password_reset`, `users.delete`, or `site.products.view` / `.create` / `.update` /
+`.delete` / `.import`. The full list lives in `backend/src/lib/constants.ts` (`PERMISSIONS`) and is grouped on the
+*Roles & permissions* page. The owner role always holds every permission. Roles saved before the per-action split
+(with keys such as `users.manage` or `site.manage`) are converted automatically at startup to the equivalent set of
+new permissions (`LEGACY_PERMISSIONS`), so nobody gains or loses access.
+
+Set `NEXT_PUBLIC_SITE_URL` (default `https://snstextiles.com`) for the sitemap and sharing links.
+
+### Moving the catalogue from WooCommerce
+
+1. In WordPress: *Products → All Products → Export* (all columns, all products) to CSV.
+2. Optionally download `/product-sitemap.xml` (and `product-sitemap2.xml`, …) so each product keeps its old URL.
+3. Portal → *Website → Products → Import from WooCommerce*, upload the files. Re-running updates instead of duplicating.
+4. Click *Download old images* to copy product photos off WordPress before switching it off.
+
+Policy pages (privacy, terms, shipping & returns, size guide) are created as drafts — write and publish them under
+*Website → Pages & blog*.
+
 ## Project layout
 
 ```
@@ -101,11 +140,18 @@ backend/src
   index.ts / dev-memory.ts   Entry points (real MongoDB / in-memory)
   seed.ts                Demo data
   config/env.ts          Environment configuration
-  lib/constants.ts       Roles, stages, product configs, sizes, payment methods
-  lib/workflow.ts        Status rules, approval gate, row-level scoping, order serialization
+  lib/                   Shared helpers: constants (roles, stages, sizes…), http errors, uploads, mail, urls, counters
   middleware/            Auth (JWT cookie, role guard) and error handling
-  models/                Mongoose schemas
-  routes/                auth, users, customers, orders, payments, inventory, dashboard, reports, settings/meta/audit
+  features/<area>/       One folder per area. Each request flows route → controller → service → model:
+                           <area>.route.ts       URL + permission/upload middleware → controller
+                           <area>.controller.ts  reads the request (ids, body via validation), sends the response
+                           <area>.service.ts     business rules and database work; returns plain data
+                           <area>.validation.ts  zod schemas and input types
+                           <area>.model.ts       Mongoose schemas owned by the area
+                         Areas:
+                           attendance, audit, auth, customers, dashboard, inventory, orders (incl. order.workflow.ts:
+                           status rules, approval gate, row-level scoping, serialization), payments, reports, roles,
+                           settings (settings + meta routes), site (public website & website management), users
 frontend/src
   app/login              Sign-in
   app/(app)/...          Authenticated pages (dashboard, orders, production, customers, inventory, billing, delivery, reports, users, activity, settings)

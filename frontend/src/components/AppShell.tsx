@@ -11,8 +11,10 @@ import { Icon, type IconName } from './Icon';
 import { PwaInstallButton } from './PwaInstallButton';
 import { ConfirmModal } from './ui';
 import { appPath, assetPath } from '@/lib/paths';
+import { WEBSITE_ENABLED } from '@/lib/features';
 
-type NavItem = { href: string; label: string; icon: IconName; permission?: Permission };
+/** `permission` must all be held; `anyPermission` needs at least one. */
+type NavItem = { href: string; label: string; icon: IconName; permission?: Permission | Permission[]; anyPermission?: Permission[]; exact?: boolean };
 const NAV: { label: string; items: NavItem[] }[] = [
   {
     label: 'Workspace',
@@ -34,11 +36,25 @@ const NAV: { label: string; items: NavItem[] }[] = [
     ],
   },
   {
+    label: 'Website',
+    items: [
+      { href: '/site', label: 'Website overview', icon: 'globe', permission: 'site.overview', exact: true },
+      { href: '/site/orders', label: 'Website orders', icon: 'orders', permission: ['site.overview', 'orders.view'] },
+      { href: '/site/products', label: 'Products', icon: 'tag', permission: 'site.products.view' },
+      { href: '/site/categories', label: 'Categories', icon: 'box', permission: 'site.categories.view' },
+      { href: '/site/enquiries', label: 'Enquiries', icon: 'mail', permission: 'site.enquiries.view' },
+      { href: '/site/pages', label: 'Pages & blog', icon: 'file', anyPermission: ['site.pages.view', 'site.posts.view'] },
+      { href: '/site/reviews', label: 'Reviews', icon: 'star', permission: 'site.reviews.view' },
+      { href: '/site/subscribers', label: 'Subscribers', icon: 'users', permission: 'site.subscribers.view' },
+      { href: '/site/settings', label: 'Website settings', icon: 'settings', permission: 'site.settings.view' },
+    ],
+  },
+  {
     label: 'Administration',
     items: [
-      { href: '/users', label: 'Users & access', icon: 'users', permission: 'users.manage' },
-      { href: '/roles', label: 'Roles & permissions', icon: 'roles', permission: 'roles.manage' },
-      { href: '/profile', label: 'My profile', icon: 'profile', permission: 'profile.manage' },
+      { href: '/users', label: 'Users & access', icon: 'users', permission: 'users.view' },
+      { href: '/roles', label: 'Roles & permissions', icon: 'roles', permission: 'roles.view' },
+      { href: '/profile', label: 'My profile', icon: 'profile', permission: 'profile.update' },
       { href: '/activity', label: 'Audit log', icon: 'activity', permission: 'audit.view' },
       { href: '/settings', label: 'Settings', icon: 'settings', permission: 'settings.view' },
     ],
@@ -60,6 +76,7 @@ const TITLES: Record<string, string> = {
   profile: 'My profile',
   activity: 'Audit log',
   settings: 'Settings',
+  site: 'Website management',
 };
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -96,7 +113,10 @@ export function AppShell({ children }: { children: ReactNode }) {
     };
   }, [userMenuOpen]);
 
-  const visible = NAV.map((g) => ({ ...g, items: g.items.filter((i) => !i.permission || meta.permissions.includes(i.permission)) })).filter((g) => g.items.length);
+  const allowed = (i: NavItem) =>
+    (!i.permission || (Array.isArray(i.permission) ? i.permission : [i.permission]).every((p) => meta.permissions.includes(p)))
+    && (!i.anyPermission || i.anyPermission.some((p) => meta.permissions.includes(p)));
+  const visible = NAV.filter((g) => WEBSITE_ENABLED || g.label !== 'Website').map((g) => ({ ...g, items: g.items.filter(allowed) })).filter((g) => g.items.length);
   const title = user.role === 'customer' && section === 'orders' ? 'My orders' : TITLES[section] ?? 'SNS Textiles';
   async function performLogout() {
     setUserMenuOpen(false);
@@ -119,7 +139,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <div className="nav-label">{user.role === 'customer' && group.label === 'Administration' ? 'Account' : group.label}</div>
             <nav className="nav-group">
               {group.items.map((item) => (
-                <Link key={item.href} href={item.href} className={`nav-btn ${pathname.startsWith(appPath(item.href)) ? 'active' : ''}`}>
+                <Link key={item.href} href={item.href} className={`nav-btn ${(item.exact ? pathname === appPath(item.href) : pathname.startsWith(appPath(item.href))) ? 'active' : ''}`}>
                   <span className="nav-icon"><Icon name={item.icon} size={17} /></span>
                   <span className="nav-text">{user.role === 'customer' && item.href === '/orders' ? 'My orders' : item.label}</span>
                 </Link>

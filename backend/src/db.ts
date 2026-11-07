@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { User } from './models/user.model';
+import { User } from './features/users/user.model';
 
 async function backfillUsernames() {
   const users = await User.find({}).select('_id name email username');
