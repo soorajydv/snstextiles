@@ -9,6 +9,7 @@ import { ConfirmModal, errorMessage } from '@/components/ui';
 import { useToast } from '@/components/Toast';
 import { canSeeMoney } from '@/lib/format';
 import type { Order } from '@/lib/types';
+import { WEBSITE_ENABLED } from '@/lib/features';
 
 const STATUSES = ['Design in progress', 'Awaiting approval', 'Changes requested', 'Design approved', 'In production', 'Quality check', 'Ready to dispatch', 'Delivered'];
 const PAGE_SIZE = 50;
@@ -80,11 +81,11 @@ export default function OrdersPage() {
           <option value="soon">Due in next 7 days</option>
           <option value="overdue">Overdue only</option>
         </select>
-        <select value={source} onChange={(e) => setSource(e.target.value)} aria-label="Order source">
+        {WEBSITE_ENABLED && <select value={source} onChange={(e) => setSource(e.target.value)} aria-label="Order source">
           <option value="">All sources</option>
           <option value="website">Website shop</option>
           <option value="portal">Portal / staff</option>
-        </select>
+        </select>}
         <select value={sort} onChange={(e) => setSort(e.target.value)} aria-label="Sort orders">
           <option value="deadline">Nearest deadline</option>
           <option value="recent">Recently added</option>

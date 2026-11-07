@@ -6,6 +6,7 @@ import { useAuth } from '@/components/AuthProvider';
 import { useToast } from '@/components/Toast';
 import { ConfirmModal, Field, Modal, Notice, PageHeader, Spinner, errorMessage } from '@/components/ui';
 import type { Permission, RoleDefinition } from '@/lib/types';
+import { WEBSITE_ENABLED } from '@/lib/features';
 
 type RoleForm = { key: string; name: string; description: string; permissions: Permission[] };
 
@@ -185,7 +186,7 @@ function RoleModal({ role, permissions, onClose, onSaved }: { role: RoleDefiniti
       <div className="field" style={{ marginTop: 16 }}>
         <label>Permissions</label>
         <div className="permission-groups">
-          {PERMISSION_GROUPS.map((group) => {
+          {PERMISSION_GROUPS.filter((group) => WEBSITE_ENABLED || !group.label.startsWith('Website')).map((group) => {
             const available = group.permissions.filter((permission) => permissions.includes(permission));
             if (!available.length) return null;
             return <section className="permission-group" key={group.label}>

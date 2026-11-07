@@ -11,6 +11,7 @@ import { Icon, type IconName } from './Icon';
 import { PwaInstallButton } from './PwaInstallButton';
 import { ConfirmModal } from './ui';
 import { appPath, assetPath } from '@/lib/paths';
+import { WEBSITE_ENABLED } from '@/lib/features';
 
 /** `permission` must all be held; `anyPermission` needs at least one. */
 type NavItem = { href: string; label: string; icon: IconName; permission?: Permission | Permission[]; anyPermission?: Permission[]; exact?: boolean };
@@ -115,7 +116,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const allowed = (i: NavItem) =>
     (!i.permission || (Array.isArray(i.permission) ? i.permission : [i.permission]).every((p) => meta.permissions.includes(p)))
     && (!i.anyPermission || i.anyPermission.some((p) => meta.permissions.includes(p)));
-  const visible = NAV.map((g) => ({ ...g, items: g.items.filter(allowed) })).filter((g) => g.items.length);
+  const visible = NAV.filter((g) => WEBSITE_ENABLED || g.label !== 'Website').map((g) => ({ ...g, items: g.items.filter(allowed) })).filter((g) => g.items.length);
   const title = user.role === 'customer' && section === 'orders' ? 'My orders' : TITLES[section] ?? 'SNS Textiles';
   async function performLogout() {
     setUserMenuOpen(false);

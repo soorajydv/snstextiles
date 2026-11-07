@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { APP_BASE_PATH } from '@/lib/paths';
+import { WEBSITE_ENABLED } from '@/lib/features';
 
 const adminSegments = new Set([
   'activity',
@@ -51,9 +52,23 @@ function legacyRedirect(pathname: string): string | null {
   return null;
 }
 
+/** Pages of the public website (not the portal, internal admin routes or static files such as images). */
+function isPublicSitePath(pathname: string) {
+  if (pathname === APP_BASE_PATH || pathname.startsWith(`${APP_BASE_PATH}/`) || pathname.startsWith('/admin')) return false;
+  if (pathname === '/sitemap.xml') return true;
+  return !/\.[a-z0-9]+$/i.test(pathname);
+}
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const segment = pathname.split('/')[1];
+
+  if (!WEBSITE_ENABLED && !adminSegments.has(segment) && isPublicSitePath(pathname)) {
+    const url = request.nextUrl.clone();
+    url.pathname = `${APP_BASE_PATH}/login`;
+    url.search = '';
+    return NextResponse.redirect(url);
+  }
 
   const legacy = legacyRedirect(pathname);
   if (legacy) {
