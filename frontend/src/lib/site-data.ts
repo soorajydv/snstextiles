@@ -15,12 +15,15 @@ export async function siteGet<T>(path: string, revalidate = 30): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-/** Like siteGet but returns null for 404s (and for an unreachable API during builds). */
+/** Like siteGet but returns null for missing/restricted data or an unreachable API during builds. */
 export async function siteFind<T>(path: string): Promise<T | null> {
   try {
     return await siteGet<T>(path);
   } catch (error) {
-    if (error instanceof SiteApiError && error.status === 404) return null;
+    if (error instanceof SiteApiError && [401, 403, 404].includes(error.status)) {
+      console.warn(`[site] Public API returned ${error.status} for ${path}; using fallback content.`);
+      return null;
+    }
     if (error instanceof SiteApiError) throw error;
     console.error('[site] API unavailable:', (error as Error).message);
     return null;
